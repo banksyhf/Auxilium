@@ -79,7 +79,8 @@ namespace Auxilium_Server
             SendRegister = 7,
             SendLogin = 8,
             Channels = 9,
-            SelectChannel = 10
+            SelectChannel = 10,
+            UserChannelEvent = 11
         }
         #endregion
 

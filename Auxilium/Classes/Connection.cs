@@ -61,6 +61,12 @@ namespace Auxilium
             Connected = 1,
             Disconnected = 2
         }
+        public enum Channels : int
+        {
+            Lounge = 0,
+            VB_NET = 1,
+            CSharp = 2
+        }
         public enum Headers : int
         {
             Users = 0,
@@ -73,7 +79,8 @@ namespace Auxilium
             SendRegister = 7,
             SendLogin = 8,
             Channels = 9,
-            SelectChannel = 10
+            SelectChannel = 10,
+            UserChannelEvent = 11 //if a user leaves or enters a channel
         }
         #endregion
 
@@ -89,8 +96,11 @@ namespace Auxilium
             #region Properties
             public ListViewItem ClientItem;
             private Socket H;
-            private byte[] Data = new byte[81932];
+            private byte[] Data = new byte[8192];
             public EndPoint _EP;
+            public int Channel;
+            public string Username;
+            public bool LoggedIn = false;
 
             public bool Connected
             {
@@ -282,7 +292,7 @@ namespace Auxilium
             }
             #endregion
 
-            #region " Sending "
+            #region Sending
             public void Send(Client[] clients, object[] data)
             {
                 byte[] shits = Serialize(data);

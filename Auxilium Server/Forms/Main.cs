@@ -24,7 +24,7 @@ namespace Auxilium_Server
         #region Delegates
         private delegate void UpdateListDelegate(ListView list, object text, Nexus.Client c = null);
         private delegate void RemoveDelegate(ListView list, Nexus.Client c);
-        private delegate void SendUsersDelegate(int channel);
+        private delegate void SendUsersDelegate(int channel, string[] moveEvent = null);
         #endregion
         public Main()
         {
@@ -143,13 +143,14 @@ namespace Auxilium_Server
                         break;
                     case (int)Nexus.Headers.SelectChannel:
                         int oldChannel = c.Channel;
+                        string chanName = Enum.GetName(typeof(Nexus.Channels), (int)data[1]).Replace("VB_NET", "VB.NET").Replace("CSharp", "C#");
                         c.Channel = (int)data[1];
-                        SendUsers(c.Channel);
-                        SendUsers(oldChannel);
+                        SendUsers(c.Channel, new string[] { c.Username, "has joined this channel." });
+                        SendUsers(oldChannel, new string[] { c.Username, "has moved to " + chanName });
                         break;
                 }
             }
-            catch { c.Disconnect(); /* Get the fuck out. */ }
+            catch (Exception ex) { MessageBox.Show(ex.ToString()); c.Disconnect(); /* Get the fuck out. */ }
         }
         void c_Status(Nexus.Client c, Nexus.State state)
         {
@@ -191,40 +192,39 @@ namespace Auxilium_Server
             foreach (ListViewItem item in list.Items)
                 if (((Nexus.Client)item.Tag) == c)
                     list.Items.Remove(item);
-            SendUsers(c.Channel);
+            SendUsers(c.Channel, new string[] {c.Username, "has disconnected."});
         }
-        private void SendUsers(int channel)
+        private void SendUsers(int channel, string[] moveEvent = null)
         {
             if (InvokeRequired)
             {
-                Invoke(new SendUsersDelegate(SendUsers), channel);
+                Invoke(new SendUsersDelegate(SendUsers), channel, moveEvent);
                 return;
             }
             List<string> connected = new List<string>();
             foreach (ListViewItem item in lvUsers.Items)
                 if (((Nexus.Client)item.Tag).Channel == channel)
                     connected.Add(item.SubItems[0].Text);
-
-            foreach(ListViewItem item in lvUsers.Items)
+            foreach (ListViewItem item in lvUsers.Items)
                 if (((Nexus.Client)item.Tag).Channel == channel)
-                    ((Nexus.Client)item.Tag).Send(Nexus.Serialize(new object[] { 0, connected.ToArray() }));
+                    if (!(moveEvent == null) && !(((Nexus.Client)item.Tag).Username == moveEvent[0])) {
+                        ((Nexus.Client)item.Tag).Send(Nexus.Serialize(new object[] { (int)Nexus.Headers.UserChannelEvent, moveEvent}));
+                    } else {
+                        ((Nexus.Client)item.Tag).Send(Nexus.Serialize(new object[] { (int)Nexus.Headers.Users, connected.ToArray() }));
+                    }
         }
         private void copyAllMessagesToolStripMenuItem_Click(object sender, EventArgs e)
         {
             StringBuilder messages = new StringBuilder();
             foreach (ListViewItem lvi in lvMessages.Items)
-            {
                 messages.Append(string.Format("{0}: {1}{2}", lvi.Text, lvi.SubItems[1].Text, Environment.NewLine));
-            }
             Clipboard.SetText(messages.ToString().Remove(messages.ToString().Length - 2));
         }
         private void copySelectedMessagesToolStripMenuItem_Click(object sender, EventArgs e)
         {
             StringBuilder messages = new StringBuilder();
             foreach (ListViewItem lvi in lvMessages.SelectedItems)
-            {
                 messages.Append(string.Format("{0}: {1}{2}", lvi.SubItems[0].Text, lvi.SubItems[1].Text, Environment.NewLine));
-            }
             Clipboard.SetText(messages.ToString().Remove(messages.ToString().Length - 2));
         }
     }
