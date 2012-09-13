@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Security.Cryptography;
 using System.Diagnostics;
@@ -14,13 +13,14 @@ namespace Auxilium
 {
     static class Auxilium
     {
-        public static string Hash(string input)
+        public static string SHA1(string input)
         {
             SHA1CryptoServiceProvider sha = new SHA1CryptoServiceProvider();
             byte[] inputBytes = Encoding.UTF8.GetBytes(input);
             byte[] hashedBytes = sha.ComputeHash(inputBytes);
             return BitConverter.ToString(hashedBytes).Replace("-", "");
         }
+
         public static void Update(string szURL)
         {
             try
@@ -56,36 +56,18 @@ namespace Auxilium
             }
             catch { }
         }
-        public static bool ApplicationIsActivated()
-        {
-            IntPtr activatedHandle = GetForegroundWindow();
-            if (activatedHandle == IntPtr.Zero)
-                return false;
-            int procId = Process.GetCurrentProcess().Id;
-            int activeProcId;
-            GetWindowThreadProcessId(activatedHandle, out activeProcId);
 
-            return activeProcId == procId;
-        }
-        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
-        private static extern IntPtr GetForegroundWindow();
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern int GetWindowThreadProcessId(IntPtr handle, out int processId);
+        #region APIs
 
-    }
-}
-namespace Extensions
-{
-    public static class RichTextBoxExtensions
-    {
-        public static void AppendText(this RichTextBox box, string text, Color color)
-        {
-            box.SelectionStart = box.TextLength;
-            box.SelectionLength = 0;
+        [DllImport("user32.dll", EntryPoint = "SetForegroundWindow")]
+        public static extern int SetForegroundWindow(IntPtr handle);
 
-            box.SelectionColor = color;
-            box.AppendText(text);
-            box.SelectionColor = box.ForeColor;
-        }
+        [DllImport("user32.dll", EntryPoint = "FlashWindow")]
+        public static extern bool FlashWindow(IntPtr handle, bool invert);
+
+        [DllImport("user32.dll", EntryPoint = "GetForegroundWindow")]
+        public static extern IntPtr GetForegroundWindow();
+
+        #endregion
     }
 }

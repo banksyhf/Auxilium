@@ -1,355 +1,446 @@
 ﻿using System;
-using System.IO;
-using System.Net;
-using System.Text;
-using System.Net.Sockets;
-using System.Windows.Forms;
 using System.Collections.Generic;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.IO.Compression;
+using System.Net.Sockets;
+using System.Net;
+using System.ComponentModel;
+using System.IO;
 
-namespace Auxilium_Server
+namespace Auxilium_Server.Classes
 {
-    public sealed class Nexus
+    //Special server optimized client.
+    //This client has been modified to define Value as a 'UserState' instead of an 'object'.
+
+    sealed class Client
     {
-        #region Miscellaneous Functions
-        public static byte[] Serialize(object data)
+        //TODO: Lock objects where needed.
+        //TODO: Raise Client_Fail with exception.
+
+        public event Client_FailEventHandler Client_Fail;
+        public delegate void Client_FailEventHandler(Client s);
+
+        private void OnClient_Fail()
+        {
+            if (Client_Fail != null)
+            {
+                Client_Fail(this);
+            }
+        }
+
+        public event Client_StateEventHandler Client_State;
+        public delegate void Client_StateEventHandler(Client s, bool open);
+
+        private void OnClient_State(bool open)
+        {
+            if (Client_State != null)
+            {
+                Client_State(this, open);
+            }
+        }
+
+        public event Client_ReadEventHandler Client_Read;
+        public delegate void Client_ReadEventHandler(Client s, byte[] e);
+
+        private void OnClient_Read(byte[] e)
+        {
+            if (Client_Read != null)
+            {
+                Client_Read(this, e);
+            }
+        }
+
+        public event Client_WriteEventHandler Client_Write;
+        public delegate void Client_WriteEventHandler(Client s);
+
+        private void OnClient_Write()
+        {
+            if (Client_Write != null)
+            {
+                Client_Write(this);
+            }
+        }
+
+        private Socket Handle;
+
+        private SocketAsyncEventArgs[] Items = new SocketAsyncEventArgs[2];
+        private byte[] OperationData;
+        private Queue<byte[]> Operation;
+
+        private bool[] Processing = new bool[2];
+
+        public ushort Size { get; set; }
+        public UserState Value { get; set; }
+
+        private IPEndPoint _EndPoint;
+        public IPEndPoint EndPoint
+        {
+            get
+            {
+                if (_EndPoint != null)
+                    return _EndPoint;
+                else
+                    return new IPEndPoint(IPAddress.None, 0);
+            }
+        }
+
+        private bool _Connection;
+        public bool Connection
+        {
+            get { return _Connection; }
+        }
+
+        public Client(Socket sock, ushort size)
         {
             try
             {
-                if (data is byte[])
-                    return (byte[])data;
-                using (MemoryStream M = new MemoryStream())
+                Initialize();
+                Items[0].SetBuffer(new byte[size], 0, size);
+
+                Handle = sock;
+
+                Size = size;
+                _EndPoint = (IPEndPoint)Handle.RemoteEndPoint;
+                _Connection = true;
+
+                if (!Handle.ReceiveAsync(Items[0]))
+                    Process(null, Items[0]);
+            }
+            catch
+            {
+                Disconnect();
+            }
+        }
+
+        private void Initialize()
+        {
+            Processing = new bool[2];
+            Operation = new Queue<byte[]>();
+
+            Items[0] = new SocketAsyncEventArgs();
+            Items[1] = new SocketAsyncEventArgs();
+            Items[0].Completed += Process;
+            Items[1].Completed += Process;
+        }
+
+        private void Process(object s, SocketAsyncEventArgs e)
+        {
+            try
+            {
+                if (e.SocketError == SocketError.Success)
                 {
-                    BinaryFormatter F = new BinaryFormatter();
-                    F.Serialize(M, data);
-                    return M.ToArray();
+                    switch (e.LastOperation)
+                    {
+                        case SocketAsyncOperation.Connect:
+                            _EndPoint = (IPEndPoint)Handle.RemoteEndPoint;
+                            _Connection = true;
+                            Items[0].SetBuffer(new byte[Size], 0, Size);
+
+                            OnClient_State(true);
+                            if (!Handle.ReceiveAsync(e))
+                                Process(null, e);
+                            break;
+                        case SocketAsyncOperation.Receive:
+                            if (!_Connection)
+                                return;
+
+                            if (e.BytesTransferred != 0)
+                            {
+                                HandleMessage(Chunk(e.Buffer, e.BytesTransferred));
+                                if (!Handle.ReceiveAsync(e))
+                                    Process(null, e);
+                            }
+                            else
+                            {
+                                Disconnect();
+                            }
+                            break;
+                        case SocketAsyncOperation.Send:
+                            if (!_Connection)
+                                return;
+
+                            OnClient_Write();
+                            if (Operation.Count == 0)
+                                Processing[1] = false;
+                            else
+                                HandleMessages();
+                            break;
+                    }
+                }
+                else
+                {
+                    if (e.LastOperation == SocketAsyncOperation.Connect)
+                        OnClient_Fail();
+                    Disconnect();
                 }
             }
             catch
             {
-                return (byte[])data;
+                Disconnect();
             }
         }
 
-        public static object Deserialize(byte[] data)
+        public void Disconnect()
+        {
+            if (Processing[0])
+                return;
+            else
+                Processing[0] = true;
+
+            bool Raise = Connection;
+            _Connection = false;
+
+            if (Handle != null)
+                Handle.Close();
+            if (Operation != null)
+                Operation.Clear();
+
+            if (Raise)
+                OnClient_State(false);
+
+            Value = null;
+            _EndPoint = null;
+        }
+
+        public void Send(byte[] data)
+        {
+            if (!Connection)
+                return;
+
+            Operation.Enqueue(data);
+
+            if (!Processing[1])
+            {
+                Processing[1] = true;
+                HandleMessages();
+            }
+        }
+
+        private void HandleMessages()
         {
             try
             {
-                using (MemoryStream M = new MemoryStream(data, false))
-                {
-                    return (new BinaryFormatter()).Deserialize(M);
-                }
+                OperationData = Header(Operation.Dequeue());
+                Items[1].SetBuffer(OperationData, 0, OperationData.Length);
+
+                if (!Handle.SendAsync(Items[1]))
+                    Process(null, Items[1]);
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine(ex.ToString());
-                return data;
+                Disconnect();
             }
         }
 
-        public static T[] Truncate<T>(T[] data, int length)
+        private byte[] Chunk(byte[] data, int length)
         {
-            Array.Resize(ref data, length);
-            return data;
-        }
-        #endregion
-
-        #region Enums
-        public enum State : int
-        {
-            Connected = 1,
-            Disconnected = 2
-        }
-        public enum Channels : int
-        {
-            Lounge = 0,
-            VB_NET = 1,
-            CSharp = 2
-        }
-        public enum Headers : int
-        {
-            Users = 0,
-            Message = 1,
-            MOTD = 2,
-            LoginSuccess = 3,
-            LoginFail = 4,
-            RegisterSuccess = 5,
-            RegisterFail = 6,
-            SendRegister = 7,
-            SendLogin = 8,
-            Channels = 9,
-            SelectChannel = 10,
-            UserChannelEvent = 11
-        }
-        #endregion
-
-        public class Client
-        {
-            #region Events
-            public event IncomingEventHandler Incoming;
-            public delegate void IncomingEventHandler(Client c, byte[] d);
-            public event StatusEventHandler Status;
-            public delegate void StatusEventHandler(Client c, State state);
-            #endregion
-
-            #region Properties
-            public ListViewItem ClientItem;
-            private Socket H;
-            private byte[] Data = new byte[8192];
-            public EndPoint _EP;
-            public int Channel;
-            public string Username;
-            public bool LoggedIn = false;
-
-            public bool Connected
-            {
-                get
-                {
-                    if (H != null)
-                        return H.Connected;
-                    else
-                        return false;
-                }
-            }
-            #endregion
-
-            #region Constructors
-            public Client() { }
-
-            public Client(Socket socket, Server S)
-            {
-                H = socket;
-                Read(false);
-            }
-            #endregion
-
-            #region Connecting
-
-            public void Connect(string host, int port)
-            {
-                H = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                H.BeginConnect(host, port, new AsyncCallback(Connect), 0);
-            }
-
-            private void Connect(IAsyncResult r)
-            {
-                if (Status != null)
-                {
-                    Status(this, State.Disconnected);
-                }
-                try
-                {
-                    H.EndConnect(r);
-                    Read(true);
-                }
-                catch
-                {
-                    if (Status != null)
-                    {
-                        Status(this, State.Disconnected);
-                    }
-                }
-            }
-
-            #endregion
-
-            #region Disconnection
-            public void Disconnect()
-            {
-                H.Close();
-            }
-            #endregion
-
-            #region Reading
-            Random nR = new Random();
-            private void Read(bool r)
-            {
-                try
-                {
-                    _EP = H.RemoteEndPoint;
-                    if (r)
-                        if (Status != null)
-                        {
-                            Status(this, State.Connected);
-                        }
-                    H.BeginReceive(Data, 0, Data.Length, 0, new AsyncCallback(Read), 0);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
-                }
-            }
-
-            private void Read(IAsyncResult r)
-            {
-                try
-                {
-                    int T = H.EndReceive(r);
-                    if (T > 0)
-                    {
-                        if (Incoming != null)
-                        {
-                            Incoming(this, Truncate(Data, T));
-                        }
-                        H.BeginReceive(Data, 0, Data.Length, 0, new AsyncCallback(Read), 0);
-                    }
-                    else
-                    {
-                        Disconnect();
-                        if (Status != null)
-                        {
-                            Status(this, State.Disconnected);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
-                    if (Status != null)
-                    {
-                        Status(this, State.Disconnected);
-                    }
-                }
-            }
-            #endregion
-
-            #region Sending
-            public void Send(byte[] data)
-            {
-                try
-                {
-                    H.BeginSend(data, 0, data.Length, 0, new AsyncCallback(Send), 0);
-                }
-                catch
-                {
-                }
-            }
-
-            private void Send(IAsyncResult r)
-            {
-                H.EndSend(r);
-            }
-            #endregion
+            byte[] T = new byte[length];
+            Buffer.BlockCopy(data, 0, T, 0, length);
+            return T;
         }
 
-        public class Server
+        private byte[] Header(byte[] data)
         {
-            #region Events
-            public event IncomingEventHandler Incoming;
-            public delegate void IncomingEventHandler(Client c, byte[] d);
-            public event StatusEventHandler Status;
-            public delegate void StatusEventHandler(Client c, State state);
-            public event SentLengthHandler Sent;
-            public delegate void SentLengthHandler(Client c, double length);
-            #endregion
+            byte[] T = new byte[data.Length + 2];
+            Buffer.BlockCopy(BitConverter.GetBytes(Convert.ToUInt16(data.Length)), 0, T, 0, 2);
+            Buffer.BlockCopy(data, 0, T, 2, data.Length);
+            return T;
+        }
 
-            #region Properties
-            public double ReceivedLength = 0.00;
-            public double SentLength = 0.00;
-            private Socket H;
-            private bool _Listening;
-            private List<Client> _Connections = new List<Client>();
-            public List<Client> Connections
-            {
-                get { return _Connections; }
-            }
-            public bool Listening
-            {
-                get { return _Listening; }
-            }
-            #endregion
+        private void HandleMessage(byte[] data)
+        {
+            byte[] T = null;
+            ushort Index = 0;
+            ushort Length = 0;
 
-            #region Listen/Disconnect
-            public void Listen(int port)
+            while (Index < data.Length)
             {
-                H = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                H.Bind(new IPEndPoint(IPAddress.Any, port));
-                H.Listen(10);
-                _Listening = true;
-                H.BeginAccept(Accept, 0);
-            }
-            public void Disconnect()
-            {
-                H.Close();
-                _Connections.Clear();
-                _Listening = false;
-            }
-            #endregion
+                Length = BitConverter.ToUInt16(data, Index);
+                if (Index + Length + 2 > data.Length)
+                    return;
 
-            #region Client Acception
-            private void Accept(IAsyncResult r)
-            {
-                try
-                {
-                    OnStatus(new Client(H.EndAccept(r), this), State.Connected);
-                    H.BeginAccept(Accept, 0);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
-                }
-            }
-            #endregion
+                T = new byte[Length];
+                Buffer.BlockCopy(data, Index + 2, T, 0, Length);
 
-            #region Sending
-            public void Send(Client[] clients, object[] data)
-            {
-                byte[] shits = Serialize(data);
-                foreach (Client C in clients)
-                {
-                    try
-                    {
-                        byte[] serialized = Serialize(data);
-                        C.Send(serialized);
-                        Sent(C, SentLength += (double)serialized.Length / 1048576);
-                    }
-                    catch { C.Disconnect(); }
-                }
-            }
-            #endregion
+                Index += (ushort)(Length + 2);
 
-            #region Reading/Status
-            public void OnStatus(Client s, State e)
-            {
-                try
-                {
-                    if (e == State.Connected)
-                    {
-                        _Connections.Add(s);
-                        bool D = false;
-                        if (Status != null)
-                        {
-                            Status(s, e);
-                        }
-                        if (D)
-                        {
-                            s.Disconnect();
-                            _Connections.Remove(s);
-                            return;
-                        }
-                        s.Status += OnStatus;
-                        s.Incoming += OnIncoming;
-                    }
-                    else
-                    {
-                        _Connections.Remove(s);
-                    }
-                }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
+                OnClient_Read(T);
             }
-            private void OnIncoming(Client s, byte[] data)
-            {
-                try
-                {
-                    if (Incoming != null)
-                    {
-                        Incoming(s, data);
-                    }
-                }
-                catch (Exception ex) { Console.WriteLine(ex.ToString()); }
-            }
-            #endregion
         }
     }
+
+    class Server
+    {
+        public event Server_StateEventHandler Server_State;
+        public delegate void Server_StateEventHandler(Server s, bool open);
+
+        private void OnServer_State(bool open)
+        {
+            if (Server_State != null)
+            {
+                Server_State(this, open);
+            }
+        }
+
+        public event Client_StateEventHandler Client_State;
+        public delegate void Client_StateEventHandler(Server s, Client c, bool open);
+
+        private void OnClient_State(Client c, bool open)
+        {
+            if (Client_State != null)
+            {
+                Client_State(this, c, open);
+            }
+        }
+
+        public event Client_ReadEventHandler Client_Read;
+        public delegate void Client_ReadEventHandler(Server s, Client c, byte[] e);
+
+        private void OnClient_Read(Client c, byte[] e)
+        {
+            if (Client_Read != null)
+            {
+                Client_Read(this, c, e);
+            }
+        }
+
+        public event Client_WriteEventHandler Client_Write;
+        public delegate void Client_WriteEventHandler(Server s, Client c);
+
+        private void OnClient_Write(Client c)
+        {
+            if (Client_Write != null)
+            {
+                Client_Write(this, c);
+            }
+        }
+
+
+        private Socket Handle;
+        private SocketAsyncEventArgs Item;
+
+        private bool Processing;
+        public ushort Size { get; set; }
+        public ushort MaxConnections { get; set; }
+
+        private bool _Listening;
+        public bool Listening
+        {
+            get { return _Listening; }
+        }
+
+        private List<Client> _Clients;
+        public Client[] Clients
+        {
+            get
+            {
+                if (_Listening)
+                    return _Clients.ToArray();
+                else
+                    return new Client[0];
+            }
+        }
+
+        public void Listen(ushort port)
+        {
+            try
+            {
+                if (!_Listening)
+                {
+                    _Clients = new List<Client>();
+
+                    Item = new SocketAsyncEventArgs();
+                    Item.Completed += Process;
+
+                    Handle = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    Handle.Bind(new IPEndPoint(IPAddress.Any, port));
+                    Handle.Listen(10);
+
+                    Processing = false;
+                    _Listening = true;
+
+                    OnServer_State(true);
+                    if (!Handle.AcceptAsync(Item))
+                        Process(null, Item);
+                }
+            }
+            catch
+            {
+                Disconnect();
+            }
+        }
+
+        private void Process(object s, SocketAsyncEventArgs e)
+        {
+            try
+            {
+                if (e.SocketError == SocketError.Success)
+                {
+                    Client T = new Client(e.AcceptSocket, Size);
+
+                    lock (_Clients)
+                    {
+                        if (_Clients.Count <= MaxConnections)
+                        {
+                            _Clients.Add(T);
+                            T.Client_State += HandleState;
+                            T.Client_Read += OnClient_Read;
+                            T.Client_Write += OnClient_Write;
+
+                            OnClient_State(T, true);
+                        }
+                        else
+                        {
+                            T.Disconnect();
+                        }
+                    }
+
+                    e.AcceptSocket = null;
+                    if (!Handle.AcceptAsync(e))
+                        Process(null, e);
+                }
+                else
+                {
+                    Disconnect();
+                }
+
+            }
+            catch
+            {
+                Disconnect();
+            }
+        }
+
+        public void Disconnect()
+        {
+            if (Processing)
+                return;
+            else
+                Processing = true;
+
+            if (Handle != null)
+                Handle.Close();
+
+            lock (_Clients)
+            {
+                while (_Clients.Count != 0)
+                {
+                    _Clients[0].Disconnect();
+                    _Clients.RemoveAt(0);
+                }
+            }
+
+            _Listening = false;
+            OnServer_State(false);
+        }
+
+        private void HandleState(Client s, bool open)
+        {
+            lock (_Clients)
+            {
+                _Clients.Remove(s);
+                OnClient_State(s, false);
+            }
+        }
+
+    }
+
 }

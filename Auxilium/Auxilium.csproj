@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Auxilium</RootNamespace>
     <AssemblyName>Auxilium</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -37,56 +37,27 @@
     <ApplicationIcon>icon-powerful-framework %281%29.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Microsoft.VisualBasic" />
     <Reference Include="System" />
-    <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
-    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Classes\Auxilium.cs" />
-    <Compile Include="Classes\Connection.cs" />
     <Compile Include="Classes\Controls.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Classes\Connection.cs" />
+    <Compile Include="Classes\Serializer.cs" />
     <Compile Include="Forms\frmMain.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Forms\frmMain.Designer.cs">
       <DependentUpon>frmMain.cs</DependentUpon>
     </Compile>
-    <Compile Include="Forms\frmNewChannel.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\frmNewChannel.Designer.cs">
-      <DependentUpon>frmNewChannel.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\frmRegister.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\frmRegister.Designer.cs">
-      <DependentUpon>frmRegister.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Forms\frmLogin.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Forms\frmLogin.Designer.cs">
-      <DependentUpon>frmLogin.cs</DependentUpon>
-    </Compile>
     <Compile Include="Classes\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Forms\frmMain.resx">
       <DependentUpon>frmMain.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Forms\frmNewChannel.resx">
-      <DependentUpon>frmNewChannel.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Forms\frmRegister.resx">
-      <DependentUpon>frmRegister.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Forms\frmLogin.resx">
-      <DependentUpon>frmLogin.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

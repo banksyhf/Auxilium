@@ -7,18 +7,29 @@ namespace Auxilium
 {
     static class Program
     {
-        static bool mutex = false;
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
         static void Main()
         {
-            Mutex mTex = new Mutex(true, "Auxilium", out mutex);
-            if (!mutex) Environment.Exit(0);
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new frmMain());
+            //bool mutex;
+            //Mutex m = new Mutex(true, "Auxilium", out mutex);
+
+            //if (!mutex)
+            //{
+            //    //TODO: Activate main instance of our program.
+            //    return;
+            //}
+
+            //GC.KeepAlive(m);
+            try
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new frmMain());
+            }
+            catch (Exception ex) { MessageBox.Show(ex.ToString()); }
         }
     }
 }
