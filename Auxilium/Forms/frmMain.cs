@@ -151,13 +151,16 @@ namespace Auxilium
                     HandleUserJoinPacket((ushort)values[1], (string)values[2]);
                     break;
                 case ServerPacket.UserLeave:
-                    HandleUserLeavePacket((ushort)values[1]);
+                    HandleUserLeavePacket((ushort)values[1], (string)values[2]);
                     break;
                 case ServerPacket.MOTD:
                     HandleMOTDPacket((string)values[1]);
                     break;
                 case ServerPacket.Chatter:
                     HandleChatterPacket((ushort)values[1], (string)values[2]);
+                    break;
+                case ServerPacket.GlobalMsg:
+                    HandleGlobalMsgPacket((string)values[1]);
                     break;
             }
         }
@@ -240,16 +243,29 @@ namespace Auxilium
         private void HandleUserJoinPacket(ushort id, string name)
         {
             if (Users.ContainsKey(id) || Users.ContainsValue(name))
+            {
                 Users.Remove(id);
+                foreach (ListViewItem lvi in lvUsers.Items)
+                    if (lvi.Text == name)
+                        lvUsers.Items.Remove(lvi);
+            }
             Users.Add(id, name);
             lvUsers.Items.Add(name).Name = id.ToString();
             UpdateUserCount();
         }
 
-        private void HandleUserLeavePacket(ushort id)
+        private void RemoveUserFromList(string name)
+        {
+            foreach (ListViewItem lvi in lvUsers.Items)
+                if (lvi.Text == name)
+                    lvUsers.Items.Remove(lvi);
+            
+        }
+
+        private void HandleUserLeavePacket(ushort id, string name)
         {
             Users.Remove(id);
-            lvUsers.Items.RemoveByKey(id.ToString());
+            RemoveUserFromList(name);
             UpdateUserCount();
         }
 
@@ -274,6 +290,16 @@ namespace Auxilium
             }
         }
 
+        private void HandleGlobalMsgPacket(string message)
+        {
+            AppendChat(Color.Red, Color.Red, "Global Broadcast", message);
+            if (ShowChatNotifications && !IsForegroundWindow)
+            {
+                Auxilium.FlashWindow(this.Handle, true);
+                niChat.ShowBalloonTip(100, "Global Broadcast", message, ToolTipIcon.Info);
+            }
+        }
+
         #endregion
 
         #region " Helper Methods "
@@ -281,7 +307,7 @@ namespace Auxilium
         private void ConnectToServer()
         {
             tslChatting.Text = "Status: Connecting to server..";
-            Connection.Connect("localhost", 3357); 
+            Connection.Connect("localhost", 3357);
         }
 
         private void HandleBadConnection()
@@ -298,6 +324,13 @@ namespace Auxilium
             tslChatting.Text = "Status: Connection to server failed or lost.";
         }
 
+        public bool IsForegroundWindow
+        {
+            get
+            {
+                return (this.Handle == Auxilium.GetForegroundWindow());
+            }
+        }
         #endregion
 
         #region " Main Buttons "
@@ -532,40 +565,6 @@ namespace Auxilium
             Environment.Exit(0);
         }
 
-        #endregion
-
-        #region " Custom Types "
-
-        enum MenuScreen
-        {
-            SignIn,
-            Register,
-            Chat,
-            Reconnect
-        }
-
-        enum ServerPacket : byte
-        {
-            SignIn,
-            Register,
-            UserList,
-            UserJoin,
-            UserLeave,
-            ChannelList,
-            MOTD,
-            Chatter
-        }
-
-        enum ClientPacket : byte
-        {
-            SignIn,
-            Register,
-            Channel,
-            ChatMessage
-        }
-
-        #endregion
-
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (comboBox1.SelectedIndex == Channel)
@@ -605,15 +604,6 @@ namespace Auxilium
 
         }
 
-
-        public bool IsForegroundWindow
-        {
-            get
-            {
-                return (this.Handle == Auxilium.GetForegroundWindow());
-            }
-        }
-
         private void tsmSignOut_Click(object sender, EventArgs e)
         {
             tsmSignOut.Enabled = false;
@@ -621,5 +611,40 @@ namespace Auxilium
             hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
             ConnectToServer();
         }
+        #endregion
+
+        #region " Custom Types "
+
+        enum MenuScreen
+        {
+            SignIn,
+            Register,
+            Chat,
+            Reconnect
+        }
+
+        enum ServerPacket : byte
+        {
+            SignIn,
+            Register,
+            UserList,
+            UserJoin,
+            UserLeave,
+            ChannelList,
+            MOTD,
+            Chatter,
+            GlobalMsg
+        }
+
+        enum ClientPacket : byte
+        {
+            SignIn,
+            Register,
+            Channel,
+            ChatMessage
+        }
+
+        #endregion
+
     }
 }
