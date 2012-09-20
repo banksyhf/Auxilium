@@ -102,7 +102,7 @@ namespace Auxilium.Classes
 
                 Handle = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-                Items[0].RemoteEndPoint = new IPEndPoint(Resolve(host), port);
+                Items[0].RemoteEndPoint = new IPEndPoint(IPAddress.Parse(host), port);
                 if (!Handle.ConnectAsync(Items[0]))
                     Process(null, Items[0]);
             }
@@ -114,27 +114,11 @@ namespace Auxilium.Classes
             }
         }
 
-        private IPAddress Resolve(string host)
-        {
-            try
-            {
-                IPAddress[] T = Dns.GetHostEntry(host).AddressList;
-
-                for (int I = 0; I <= T.Length - 1; I++)
-                {
-                    if (T[I].AddressFamily == AddressFamily.InterNetwork)
-                        return T[I];
-                }
-            } catch {
-                return IPAddress.Parse(host);
-            }
-            return IPAddress.None;
-        }
-
         private void Initialize()
         {
             Processing = new bool[2];
             Operation = new Queue<byte[]>();
+            Items = new SocketAsyncEventArgs[2];
 
             Items[0] = new SocketAsyncEventArgs();
             Items[1] = new SocketAsyncEventArgs();

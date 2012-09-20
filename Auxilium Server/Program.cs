@@ -224,9 +224,10 @@ namespace Auxilium_Server
             }
 
             MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "INSERT INTO users VALUES (@Username,@Password);";
+            q.CommandText = "INSERT INTO users VALUES (@Username,@Password,@Level);";
             q.Parameters.AddWithValue("@Username", name);
             q.Parameters.AddWithValue("@Password", pass);
+            q.Parameters.AddWithValue("@Level", 3);
 
             bool success = (q.ExecuteNonQuery() != 0);
 
@@ -254,7 +255,7 @@ namespace Auxilium_Server
             if (GetUserLevel(c.Value.Username) & message.Contains("~"))
             {
                 Console.WriteLine(c.Value.Username + " executed admin command. Command: " + message);
-                ProcessCommand(message);
+                ProcessCommand(message, c);
             }
             else
             {
@@ -284,8 +285,7 @@ namespace Auxilium_Server
         static void GetBanList()
         {
             BanList.Clear();
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT username FROM users WHERE level = '-1';";
+            MySqlCommand q = new MySqlCommand("SELECT username FROM users WHERE level = '-1';", SQL);
 
             MySqlDataReader r = q.ExecuteReader();
             bool success = r.Read() && r.HasRows;
@@ -299,8 +299,7 @@ namespace Auxilium_Server
 
         static void BanUser(string name)
         {
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "UPDATE users SET level='-1' WHERE username=@user;";
+            MySqlCommand q = new MySqlCommand("UPDATE users SET level='-1' WHERE username=@user;", SQL);
             q.Parameters.AddWithValue("@user", name);
 
             MySqlDataReader r = q.ExecuteReader();
@@ -311,8 +310,7 @@ namespace Auxilium_Server
 
         static bool GetUserLevel(string name)
         {
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT level FROM users WHERE username=@user;";
+            MySqlCommand q = new MySqlCommand("SELECT level FROM users WHERE username=@user;", SQL);
             q.Parameters.AddWithValue("@user", name);
 
             MySqlDataReader r = q.ExecuteReader();
@@ -324,8 +322,7 @@ namespace Auxilium_Server
 
         static string GetMOTD()
         {
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT motd FROM settings;";
+            MySqlCommand q = new MySqlCommand("SELECT motd FROM settings;", SQL);
 
             MySqlDataReader r = q.ExecuteReader();
             bool success = r.Read() && r.HasRows;
@@ -382,7 +379,7 @@ namespace Auxilium_Server
         }
 
         //Administrative commands: kick, ban.
-        static void ProcessCommand(string cmd)
+        static void ProcessCommand(string cmd, Client c = null)
         {
             try
             {
@@ -403,7 +400,18 @@ namespace Auxilium_Server
                         Broadcast(bChannel.Channel, data);
                         break;
                     case "list":
-                        BanList.ForEach(Console.WriteLine);
+                        if (c == null)
+                        {
+                            BanList.ForEach(Console.WriteLine);
+                        } else {
+                            object obj = BanList.ToArray();
+                            StringBuilder str = new StringBuilder();
+                            foreach (string s in BanList)
+                                str.AppendLine(s);
+                            byte[] bans = Packer.Serialize((byte)ServerPacket.BanList, str.ToString().Trim());
+                            c.Send(bans);
+                        }
+
                         break;
                 }
             }
@@ -443,7 +451,8 @@ namespace Auxilium_Server
             ChannelList,
             MOTD,
             Chatter,
-            GlobalMsg
+            GlobalMsg,
+            BanList
         }
 
         enum ClientPacket : byte

@@ -67,6 +67,7 @@ namespace Auxilium
 
             //Make sure we are using the latest version.
             CheckForUpdates();
+            //Connect
             ConnectToServer();
         }
 
@@ -80,6 +81,7 @@ namespace Auxilium
                         try
                         {
                             WebClient wc = new WebClient();
+                            wc.Proxy = null;
                             wc.DownloadStringCompleted += new DownloadStringCompletedEventHandler(wc_DownloadStringCompleted);
                             wc.DownloadStringAsync(new Uri("http://coleak.com/auxilium/update.txt"));
                         }
@@ -161,6 +163,9 @@ namespace Auxilium
                     break;
                 case ServerPacket.GlobalMsg:
                     HandleGlobalMsgPacket((string)values[1]);
+                    break;
+                case ServerPacket.BanList:
+                    HandleBanListPacket((string)values[1]);
                     break;
             }
         }
@@ -290,6 +295,12 @@ namespace Auxilium
             }
         }
 
+        
+        private void HandleBanListPacket(string list)
+        {
+            AppendChat(Color.Red, Color.Black, "Ban List", "\n" +list);
+        }
+
         private void HandleGlobalMsgPacket(string message)
         {
             AppendChat(Color.Red, Color.Red, "Global Broadcast", message);
@@ -307,7 +318,7 @@ namespace Auxilium
         private void ConnectToServer()
         {
             tslChatting.Text = "Status: Connecting to server..";
-            Connection.Connect("localhost", 3357);
+            Connection.Connect("127.0.0.1", 3357);
         }
 
         private void HandleBadConnection()
@@ -607,7 +618,6 @@ namespace Auxilium
         private void tsmSignOut_Click(object sender, EventArgs e)
         {
             tsmSignOut.Enabled = false;
-            Connection.Disconnect();
             hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
             ConnectToServer();
         }
@@ -633,7 +643,8 @@ namespace Auxilium
             ChannelList,
             MOTD,
             Chatter,
-            GlobalMsg
+            GlobalMsg,
+            BanList
         }
 
         enum ClientPacket : byte
