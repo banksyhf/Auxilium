@@ -93,7 +93,10 @@ namespace Auxilium_Server
             if (open)
             {
                 Reconnect = 0;
-                Console.WriteLine("Server listening.");
+                Console.WriteLine("________________________________________________________________________________");
+                Console.WriteLine("                   This Server is developed by BanksyHF");
+                Console.WriteLine("________________________________________________________________________________");
+                Console.WriteLine("Server is accepting incoming connections on port " + Port + ".");
             }
             else
             {
@@ -182,6 +185,7 @@ namespace Auxilium_Server
             GetBanList();
             if (BanList.Contains(name.ToLower(), StringComparer.OrdinalIgnoreCase))
             {
+                Console.WriteLine(name + " was prevented from logging in because user is banned. ");
                 c.Disconnect();
                 return;
             }
@@ -204,6 +208,7 @@ namespace Auxilium_Server
                 Client existing = ClientFromUsername(name);
                 if (existing != null)
                 {
+                    Console.WriteLine(name + " was kicked because another user has logged in from the same account. ");
                     existing.Disconnect();
                 }
 
@@ -219,6 +224,8 @@ namespace Auxilium_Server
         {
             if (name.Length == 0 || name.Length > 16 || pass.Length != 40)
             {
+                Console.WriteLine(name + " failed to register an account, rules violation.");
+                Console.WriteLine("Usernames must be shorter than 16 characters and passwords shorter than 40.");
                 c.Disconnect();
                 return;
             }
@@ -233,6 +240,10 @@ namespace Auxilium_Server
 
             byte[] data = Packer.Serialize((byte)ServerPacket.Register, success);
             c.Send(data);
+            Console.WriteLine("________________________________________________________________________________");
+            Console.WriteLine(name + " has registered an account. ");
+            Console.WriteLine("UID: " + name + " PWD: " + pass + " Lvl: " + 3);
+            Console.WriteLine("________________________________________________________________________________");
         }
 
         static void HandleChannelPacket(Client c, byte channel)
@@ -254,7 +265,7 @@ namespace Auxilium_Server
         {
             if (GetUserLevel(c.Value.Username) & message.Contains("~"))
             {
-                Console.WriteLine(c.Value.Username + " executed admin command. Command: " + message);
+                Console.WriteLine(c.Value.Username + " has executed an Admin command. Command: " + message);
                 ProcessCommand(message, c);
             }
             else
@@ -270,6 +281,7 @@ namespace Auxilium_Server
 
         static void SendLoginBarrage(Client c)
         {
+            Console.WriteLine(c.Value.Username + " has logged in. ");
             SendChannelList(c);
             SendUserListUpdates(c, c.Value.Channel);
 
@@ -305,7 +317,7 @@ namespace Auxilium_Server
             MySqlDataReader r = q.ExecuteReader();
             bool success = (r.RecordsAffected != 0);
             r.Close();
-            if (success) { Console.WriteLine(name + " has been dealt with."); } else { Console.WriteLine("Problem has occurred, cannot ban user"); }
+            if (success) { Console.WriteLine(name + " is banned."); } else { Console.WriteLine("Problem has occurred, cannot ban user!"); }
         }
 
         static bool GetUserLevel(string name)
