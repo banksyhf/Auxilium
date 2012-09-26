@@ -66,8 +66,8 @@ namespace Auxilium
             Application.DoEvents();
 
             //Make sure we are using the latest version.
-            CheckForUpdates();
-            //Connect
+            //CheckForUpdates();
+            //Connect to server. Duh.
             ConnectToServer();
         }
 
@@ -82,12 +82,12 @@ namespace Auxilium
                         {
                             WebClient wc = new WebClient();
                             wc.Proxy = null;
-                            wc.DownloadStringCompleted += new DownloadStringCompletedEventHandler(wc_DownloadStringCompleted);
+                            wc.DownloadStringCompleted += wc_DownloadStringCompleted;
                             wc.DownloadStringAsync(new Uri("http://coleak.com/auxilium/update.txt"));
                         }
-                        catch (WebException ex)
+                        catch (Exception ex)
                         {
-                            //TODO: Do something with ex.
+                            Console.WriteLine(ex.ToString());
                         }
                         Thread.Sleep(150000);
                     }
@@ -96,10 +96,16 @@ namespace Auxilium
 
         void wc_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
         {
-            string[] values = e.Result.Split('~');
+            //In case server throws a 404, or any other type of error, catch it. THis caused crashes before.
+            try
+            {
+                string[] values = e.Result.Split('~');
 
-            if (values[0] != Application.ProductVersion)
-                Auxilium.Update(values[1]);
+                if (values[0] != Application.ProductVersion)
+                    Auxilium.Update(values[1]);
+            } catch (Exception ex) {
+                Console.WriteLine(ex.ToString());
+            }
         }
 
         #endregion
@@ -288,7 +294,7 @@ namespace Auxilium
             string name = Users[id];
             AppendChat(Color.Blue, Color.Black, name, message);
 
-            if (ShowChatNotifications && !IsForegroundWindow)
+            if (ShowChatNotifications && !IsForegroundWindow && !(name == Username))
             {
                 Auxilium.FlashWindow(this.Handle, true);
                 niChat.ShowBalloonTip(100, name, message, ToolTipIcon.Info);
@@ -298,7 +304,7 @@ namespace Auxilium
         
         private void HandleBanListPacket(string list)
         {
-            AppendChat(Color.Red, Color.Black, "Ban List", "\n" +list);
+            AppendChat(Color.Red, Color.Black, "Ban List", list);
         }
 
         private void HandleGlobalMsgPacket(string message)
@@ -319,6 +325,7 @@ namespace Auxilium
         {
             tslChatting.Text = "Status: Connecting to server..";
             Connection.Connect("127.0.0.1", 3357);
+            //Connection.Connect("173.214.164.237", 3357);
         }
 
         private void HandleBadConnection()
@@ -490,7 +497,13 @@ namespace Auxilium
             string sender = string.Format("{0}: ", name);
 
             if (ShowTimestamps)
-                sender = string.Format("[{0:hh:mm}] {1}", DateTime.Now, sender);
+                sender = string.Format("[{0}] {1}", DateTime.Now.ToShortTimeString(), sender);
+
+            if (name == Username)
+            {
+                nameColor = Color.ForestGreen;
+                msgColor = Color.DimGray;
+            }
 
             AppendText(nameColor, sender);
             AppendText(msgColor, message);
@@ -603,7 +616,8 @@ namespace Auxilium
                 if (!string.IsNullOrEmpty(message))
                 {
                     //Show message locally. May want to wait for verification from server.
-                    AppendChat(Color.ForestGreen, Color.DimGray, Username, message);
+                    //AppendChat(Color.ForestGreen, Color.DimGray, Username, message);
+                    ///Now waits for server to get it and send it back.
 
                     //Send the chat message to the server.
                     byte[] data = Packer.Serialize((byte)ClientPacket.ChatMessage, message);

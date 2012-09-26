@@ -8,6 +8,7 @@ using System.IO;
 using System.Collections;
 using MySql.Data.MySqlClient;
 using System.Globalization;
+using System.Diagnostics;
 
 namespace Auxilium_Server
 {
@@ -54,11 +55,11 @@ namespace Auxilium_Server
 
             while (true)
             {
-                string str = string.Empty;
+				string str = string.Empty;
                 if (Console.ReadKey().Key == ConsoleKey.Escape)
-                    break;
+					break;
                 else if (!string.IsNullOrWhiteSpace(str = Console.ReadLine()))
-                    ProcessCommand(str);
+					ProcessCommand(str);
             }
         }
 
@@ -79,7 +80,7 @@ namespace Auxilium_Server
         {
             foreach (Client c in Listener.Clients)
             {
-                if (c.Value.Authenticated && c.Value.UserID != userID && c.Value.Channel == channel)
+                if (c.Value.Authenticated /*&& c.Value.UserID != userID*/ && c.Value.Channel == channel)
                     c.Send(data);
             }
         }
@@ -174,7 +175,8 @@ namespace Auxilium_Server
         {
             if (name.Length == 0 || name.Length > 16 || pass.Length != 40)
             {
-                c.Disconnect();
+                byte[] fail = Packer.Serialize((byte)ServerPacket.SignIn, false);
+                c.Send(fail);
                 return;
             }
 
@@ -186,8 +188,7 @@ namespace Auxilium_Server
                 return;
             }
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT Count(*) FROM users WHERE Username=@Username AND Password=@Password;";
+            MySqlCommand q = new MySqlCommand("SELECT Count(*) FROM users WHERE Username=@Username AND Password=@Password;", SQL);
             q.Parameters.AddWithValue("@Username", name);
             q.Parameters.AddWithValue("@Password", pass);
 
@@ -217,14 +218,14 @@ namespace Auxilium_Server
 
         static void HandleRegisterPacket(Client c, string name, string pass)
         {
-            if (name.Length == 0 || name.Length > 16 || pass.Length != 40)
+            if (name.Length == 0 || name.Length > 16 || pass.Length != 40 || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(pass))
             {
-                c.Disconnect();
+                byte[] fail = Packer.Serialize((byte)ServerPacket.SignIn, false);
+                c.Send(fail);
                 return;
             }
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "INSERT INTO users VALUES (@Username,@Password,@Level);";
+            MySqlCommand q = new MySqlCommand("INSERT INTO users VALUES (@Username,@Password,@Level);", SQL);
             q.Parameters.AddWithValue("@Username", name);
             q.Parameters.AddWithValue("@Password", pass);
             q.Parameters.AddWithValue("@Level", 3);
@@ -306,6 +307,28 @@ namespace Auxilium_Server
             bool success = (r.RecordsAffected != 0);
             r.Close();
             if (success) { Console.WriteLine(name + " has been dealt with."); } else { Console.WriteLine("Problem has occurred, cannot ban user"); }
+        }
+
+        static void UnbanUser(string name)
+        {
+            MySqlCommand q = new MySqlCommand("UPDATE users SET level='3' WHERE username=@user;", SQL);
+            q.Parameters.AddWithValue("@user", name);
+
+            MySqlDataReader r = q.ExecuteReader();
+            bool success = (r.RecordsAffected != 0);
+            r.Close();
+            if (success) { Console.WriteLine(name + " has been unbanned."); } else { Console.WriteLine("Problem has occurred, cannot unban user"); }
+        }
+
+        static void SetUserLevel(string name, string level)
+        {
+            MySqlCommand q = new MySqlCommand(string.Format("UPDATE users SET level='{0}' WHERE username=@user;", level), SQL);
+            q.Parameters.AddWithValue("@user", name);
+
+            MySqlDataReader r = q.ExecuteReader();
+            bool success = (r.RecordsAffected != 0);
+            r.Close();
+            if (success) { Console.WriteLine(name + " has been set to: {0}", level); } else { Console.WriteLine("Problem has occurred, cannot set user's level"); }
         }
 
         static bool GetUserLevel(string name)
@@ -392,30 +415,32 @@ namespace Auxilium_Server
                     case "ban":
                         BanUser(commands[1]);
                         GetBanList();
-                        ClientFromUsername(commands[1]).Disconnect();//Last in-case the user isn't Connected.
+                        ClientFromUsername(commands[1]).Disconnect(); //Last in-case the user isn't Connected.
+                        break;
+                    case "unban":
+                        UnbanUser(commands[1]);
+                        GetBanList();
                         break;
                     case "globalmsg":
-                        UserState bChannel = new UserState();
                         byte[] data = Packer.Serialize((byte)ServerPacket.GlobalMsg, commands[1]);
-                        Broadcast(bChannel.Channel, data);
+                        Broadcast(new UserState().Channel, data); //Global Channel
                         break;
                     case "list":
-                        if (c == null)
-                        {
+                        if (c == null) {
                             BanList.ForEach(Console.WriteLine);
                         } else {
-                            object obj = BanList.ToArray();
-                            StringBuilder str = new StringBuilder();
-                            foreach (string s in BanList)
-                                str.AppendLine(s);
-                            byte[] bans = Packer.Serialize((byte)ServerPacket.BanList, str.ToString().Trim());
+                            //Get all bans and add a line break between them.
+                            string str = string.Join("\n", BanList.ToArray());
+                            byte[] bans = Packer.Serialize((byte)ServerPacket.BanList, str.Trim());
                             c.Send(bans);
                         }
-
+                        break;
+                    case "setlevel":
+                        SetUserLevel(commands[1], commands[2]); //Set admin permissions or whatever.
                         break;
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.Print(ex.ToString()); }
+            catch (Exception ex) { Debug.Print(ex.ToString()); }
         }
 
         static void DisconnectUser(string name)

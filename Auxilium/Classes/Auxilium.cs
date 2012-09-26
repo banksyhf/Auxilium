@@ -59,13 +59,13 @@ namespace Auxilium
 
         #region APIs
 
-        [DllImport("user32.dll", EntryPoint = "SetForegroundWindow")]
+        [DllImport("user32.dll")]
         public static extern int SetForegroundWindow(IntPtr handle);
 
-        [DllImport("user32.dll", EntryPoint = "FlashWindow")]
+        [DllImport("user32.dll")]
         public static extern bool FlashWindow(IntPtr handle, bool invert);
 
-        [DllImport("user32.dll", EntryPoint = "GetForegroundWindow")]
+        [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
         #endregion
