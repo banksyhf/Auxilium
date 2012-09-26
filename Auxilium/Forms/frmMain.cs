@@ -263,6 +263,7 @@ namespace Auxilium
             Users.Add(id, name);
             lvUsers.Items.Add(name).Name = id.ToString();
             UpdateUserCount();
+            AppendChat(Color.LightGreen, Color.LightGreen, name, "has joined the chat!");
         }
 
         private void RemoveUserFromList(string name)
@@ -278,6 +279,7 @@ namespace Auxilium
             Users.Remove(id);
             RemoveUserFromList(name);
             UpdateUserCount();
+            AppendChat(Color.Red, Color.Red, name, "has parted!");
         }
 
         //TODO: Suport custom server colors?
