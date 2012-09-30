@@ -1,54 +1,51 @@
 ﻿using System;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
-    public class HiddenTab : TabControl
+public class HiddenTab : TabControl
+{
+
+    public int DesignerIndex
     {
-
-        public int DesignerIndex
+        get { return SelectedIndex; }
+        set
         {
-            get { return SelectedIndex; }
-            set
+            if (DesignMode)
             {
-                if (DesignMode)
-                {
-                    SelectedIndex = value;
-                }
+                SelectedIndex = value;
             }
         }
-
-        protected override void WndProc(ref Message m)
-        {
-            if (m.Msg == 4904)
-            {
-                m.Result = IntPtr.Zero;
-            }
-            else
-            {
-                base.WndProc(ref m);
-            }
-        }
-
     }
 
-//namespace Auxilium_Server
-//{
-//    public class ListView : System.Windows.Forms.ListView
-//    {
-//        [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
-//        private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
-//        protected override void CreateHandle()
-//        {
-//            base.CreateHandle();
-//            SetWindowTheme(this.Handle, "explorer", null);
-//        }
-//        public ListView()
-//        {
-//            this.DoubleBuffered = true;
-//            this.View = System.Windows.Forms.View.Details;
-//            this.FullRowSelect = true;
-//            this.GridLines = true;
-//        }
-//    }
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == 4904)
+        {
+            m.Result = IntPtr.Zero;
+        }
+        else
+        {
+            base.WndProc(ref m);
+        }
+    }
+
+}
+public class ListView : System.Windows.Forms.ListView
+{
+    [DllImport("uxtheme.dll", CharSet = CharSet.Unicode)]
+    private static extern int SetWindowTheme(IntPtr hWnd, string pszSubAppName, string pszSubIdList);
+    protected override void CreateHandle()
+    {
+        base.CreateHandle();
+        SetWindowTheme(this.Handle, "explorer", null);
+    }
+    public ListView()
+    {
+        this.DoubleBuffered = true;
+        this.View = System.Windows.Forms.View.Details;
+        this.FullRowSelect = true;
+    }
+}
 
 //    #region " Sort "
 //    /// <summary>

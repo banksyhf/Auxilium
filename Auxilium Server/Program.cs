@@ -8,7 +8,6 @@ using System.IO;
 using System.Collections;
 using MySql.Data.MySqlClient;
 using System.Globalization;
-using System.Diagnostics;
 
 namespace Auxilium_Server
 {
@@ -23,6 +22,8 @@ namespace Auxilium_Server
         static string[] Channels;
 
         static List<string> BanList = new List<string>();
+
+        static List<string> MuteList = new List<string>();
 
         static int Reconnect;
 
@@ -55,11 +56,11 @@ namespace Auxilium_Server
 
             while (true)
             {
-				string str = string.Empty;
+                string str = string.Empty;
                 if (Console.ReadKey().Key == ConsoleKey.Escape)
-					break;
+                    break;
                 else if (!string.IsNullOrWhiteSpace(str = Console.ReadLine()))
-					ProcessCommand(str);
+                    ProcessCommand(str);
             }
         }
 
@@ -80,7 +81,7 @@ namespace Auxilium_Server
         {
             foreach (Client c in Listener.Clients)
             {
-                if (c.Value.Authenticated /*&& c.Value.UserID != userID*/ && c.Value.Channel == channel)
+                if (c.Value.Authenticated && c.Value.UserID != userID && c.Value.Channel == channel)
                     c.Send(data);
             }
         }
@@ -144,6 +145,12 @@ namespace Auxilium_Server
                         case ClientPacket.ChatMessage:
                             HandleChatPacket(c, (string)values[1]);
                             break;
+                        case ClientPacket.PM:
+                            HandlePMPacket((string)values[1], (string)values[2], (string)values[3], c.Value.Username);
+                            break;
+                        case ClientPacket.KeepAlive:
+                            HandleKeepAlivePacket(c);
+                            break;
                     }
                 }
                 else
@@ -182,7 +189,7 @@ namespace Auxilium_Server
 
             //Don't let them join if they were banned.
             GetBanList();
-            if (BanList.Contains(name.ToLower(), StringComparer.OrdinalIgnoreCase))
+            if (BanList.Contains(name, StringComparer.OrdinalIgnoreCase))
             {
                 c.Disconnect();
                 return;
@@ -218,10 +225,22 @@ namespace Auxilium_Server
 
         static void HandleRegisterPacket(Client c, string name, string pass)
         {
-            if (name.Length == 0 || name.Length > 16 || pass.Length != 40 || string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(pass))
+            if (name.Length == 0 || name.Length > 16 || pass.Length != 40)
             {
                 byte[] fail = Packer.Serialize((byte)ServerPacket.SignIn, false);
                 c.Send(fail);
+                return;
+            }
+
+            MySqlCommand check = new MySqlCommand("SELECT username FROM users WHERE username=@user;", SQL);
+            check.Parameters.AddWithValue("@user", name);
+            MySqlDataReader r = check.ExecuteReader();
+            bool exists = r.Read() && r.HasRows;
+            check.Dispose();
+            r.Close();
+            if (exists)
+            {
+                c.Send(Packer.Serialize((byte)ServerPacket.Register, false));
                 return;
             }
 
@@ -251,6 +270,18 @@ namespace Auxilium_Server
             }
         }
 
+        static void HandlePMPacket(string username, string message, string subject, string from)
+        {
+            Client c = ClientFromUsername(username);
+            
+            if (c == null)
+                return;
+
+            byte[] data = Packer.Serialize((byte)ServerPacket.PM, from, message, subject);
+            c.Send(data);
+
+        }
+
         static void HandleChatPacket(Client c, string message)
         {
             if (GetUserLevel(c.Value.Username) & message.Contains("~"))
@@ -260,9 +291,18 @@ namespace Auxilium_Server
             }
             else
             {
+                if (MuteList.Contains(c.Value.Username.ToLower()))
+                    return;
+
                 byte[] data = Packer.Serialize((byte)ServerPacket.Chatter, c.Value.UserID, message);
                 BroadcastExclusive(c.Value.UserID, c.Value.Channel, data);
             }
+        }
+
+        static void HandleKeepAlivePacket(Client c)
+        {
+            byte[] data = Packer.Serialize((byte)ServerPacket.KeepAlive);
+            c.Send(data);
         }
 
         #endregion
@@ -317,7 +357,7 @@ namespace Auxilium_Server
             MySqlDataReader r = q.ExecuteReader();
             bool success = (r.RecordsAffected != 0);
             r.Close();
-            if (success) { Console.WriteLine(name + " has been unbanned."); } else { Console.WriteLine("Problem has occurred, cannot unban user"); }
+            if (success) { Console.WriteLine(name + " has been dealt with."); } else { Console.WriteLine("Problem has occurred, cannot ban user"); }
         }
 
         static void SetUserLevel(string name, string level)
@@ -358,7 +398,7 @@ namespace Auxilium_Server
         {
             try
             {
-                byte[] data1 = Packer.Serialize((byte)ServerPacket.UserJoin, c.Value.UserID, c.Value.Username);
+                byte[] data1 = Packer.Serialize((byte)ServerPacket.UserJoin, c.Value.UserID, c.Value.Username, GetUserLevel(c.Value.Username));
                 BroadcastExclusive(c.Value.UserID, c.Value.Channel, data1);
 
                 List<object> cValues = new List<object>();
@@ -374,9 +414,11 @@ namespace Auxilium_Server
                     {
                         cValues.Add(u.Value.UserID);
                         cValues.Add(u.Value.Username);
+                        cValues.Add(GetUserLevel(u.Value.Username));
                     } else {
                         oldValues.Add(u.Value.UserID);
                         oldValues.Add(u.Value.Username);
+                        oldValues.Add(GetUserLevel(u.Value.Username));
                     }
                 }
 
@@ -415,32 +457,39 @@ namespace Auxilium_Server
                     case "ban":
                         BanUser(commands[1]);
                         GetBanList();
-                        ClientFromUsername(commands[1]).Disconnect(); //Last in-case the user isn't Connected.
+                        ClientFromUsername(commands[1]).Disconnect();//Last in-case the user isn't Connected.
                         break;
                     case "unban":
                         UnbanUser(commands[1]);
-                        GetBanList();
                         break;
                     case "globalmsg":
                         byte[] data = Packer.Serialize((byte)ServerPacket.GlobalMsg, commands[1]);
-                        Broadcast(new UserState().Channel, data); //Global Channel
+                        Broadcast(new UserState().Channel, data);
                         break;
                     case "list":
-                        if (c == null) {
+                        if (c == null)
+                        {
                             BanList.ForEach(Console.WriteLine);
                         } else {
-                            //Get all bans and add a line break between them.
-                            string str = string.Join("\n", BanList.ToArray());
-                            byte[] bans = Packer.Serialize((byte)ServerPacket.BanList, str.Trim());
+                            string str = string.Join("\n", BanList.ToArray()).Trim();
+                            byte[] bans = Packer.Serialize((byte)ServerPacket.BanList, str);
                             c.Send(bans);
                         }
                         break;
                     case "setlevel":
                         SetUserLevel(commands[1], commands[2]); //Set admin permissions or whatever.
+                        Client cClient = ClientFromUsername(commands[1]);
+                        SendUserListUpdates(cClient, cClient.Value.Channel);
+                        break;
+                    case "mute":
+                        MuteList.Add(commands[1].ToLower());
+                        break;
+                    case "unmute":
+                        MuteList.Remove(commands[1].ToLower());
                         break;
                 }
             }
-            catch (Exception ex) { Debug.Print(ex.ToString()); }
+            catch (Exception ex) { System.Diagnostics.Debug.Print(ex.ToString()); }
         }
 
         static void DisconnectUser(string name)
@@ -477,7 +526,9 @@ namespace Auxilium_Server
             MOTD,
             Chatter,
             GlobalMsg,
-            BanList
+            BanList,
+            PM,
+            KeepAlive
         }
 
         enum ClientPacket : byte
@@ -485,7 +536,9 @@ namespace Auxilium_Server
             SignIn,
             Register,
             Channel,
-            ChatMessage
+            ChatMessage,
+            PM,
+            KeepAlive
         }
 
         #endregion

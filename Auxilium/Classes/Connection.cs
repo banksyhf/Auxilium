@@ -8,7 +8,7 @@ using System.IO;
 namespace Auxilium.Classes
 {
     //Special thread safe client.
-    sealed class Client
+    public class Client
     {
         //TODO: Lock objects where needed.
         //TODO: Raise Client_Fail with exception.
@@ -82,10 +82,10 @@ namespace Auxilium.Classes
             }
         }
 
-        private bool _Connection;
-        public bool Connection
+        private bool _Connected;
+        public bool Connected
         {
-            get { return _Connection; }
+            get { return _Connected; }
         }
 
         public Client()
@@ -136,7 +136,7 @@ namespace Auxilium.Classes
                     {
                         case SocketAsyncOperation.Connect:
                             _EndPoint = (IPEndPoint)Handle.RemoteEndPoint;
-                            _Connection = true;
+                            _Connected = true;
                             Items[0].SetBuffer(new byte[Size], 0, Size);
 
                             O.Post(x => OnClient_State(true), null);
@@ -144,7 +144,7 @@ namespace Auxilium.Classes
                                 Process(null, e);
                             break;
                         case SocketAsyncOperation.Receive:
-                            if (!_Connection)
+                            if (!_Connected)
                                 return;
 
                             if (e.BytesTransferred != 0)
@@ -159,7 +159,7 @@ namespace Auxilium.Classes
                             }
                             break;
                         case SocketAsyncOperation.Send:
-                            if (!_Connection)
+                            if (!_Connected)
                                 return;
 
                             O.Post(x => OnClient_Write(), null);
@@ -190,8 +190,8 @@ namespace Auxilium.Classes
             else
                 Processing[0] = true;
 
-            bool Raise = Connection;
-            _Connection = false;
+            bool Raise = Connected;
+            _Connected = false;
 
             if (Handle != null)
                 Handle.Close();
@@ -207,7 +207,7 @@ namespace Auxilium.Classes
 
         public void Send(byte[] data)
         {
-            if (!Connection)
+            if (!Connected)
                 return;
 
             Operation.Enqueue(data);

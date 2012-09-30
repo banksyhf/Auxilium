@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
+using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using System.Diagnostics;
 using System.Net;
 using System.Runtime.InteropServices;
-
+using Auxilium.Forms;
 using Auxilium.Classes;
+using Microsoft.Win32;
 
 namespace Auxilium
 {
@@ -23,13 +25,17 @@ namespace Auxilium
         //We'll use this to cache usernames.
         private Dictionary<ushort, string> Users;
 
+        private List<PrivateMessage> PMs = new List<PrivateMessage>();
+
+        private int UnreadPMs = 0;
+
         private string Username;
         private int Channel;
 
         private bool ShowTimestamps = true;
         private bool SpaceOutMessages = true;
-        private bool ShowChatNotifications = true;
-        private bool AllowPrivateChats = true;
+        public static bool ShowChatNotifications = true;
+        private bool ShowJoinLeaveEvents = false;
         private bool WriteMessageToFile = false;
 
         #endregion
@@ -56,19 +62,41 @@ namespace Auxilium
             //Prevents the header from auto-resizing.
             lvUsers.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.None);
 
-            //Hide users online until user is in chat.
-            tslUsersOnline.Visible = false;
+            //Remember Me
+            RegistryKey rk = Registry.CurrentUser.OpenSubKey("Software\\Auxilium");
+
+            if (!(rk == null))
+            {
+                string[] names = rk.GetValueNames();
+                if (names.Contains("Username"))
+                {
+                    tbUser.Text = (string)rk.GetValue("Username");
+                    cbRemember.Checked = true;
+                }
+                if (names.Contains("Password"))
+                {
+                    tbPass.Text = (string)rk.GetValue("Password");
+                    cbRemember.Checked = true;
+                }
+            }
         }
 
         private void frmMain_Shown(object sender, EventArgs e)
         {
+            //Hide users online until user is in chat.
+            tslUsersOnline.Visible = false;
+
+            tbUser.Select();
+
             //Because that non-async method below will keep our controls from updating..
             Application.DoEvents();
 
             //Make sure we are using the latest version.
-            //CheckForUpdates();
-            //Connect to server. Duh.
+            CheckForUpdates();
+            //Connect
             ConnectToServer();
+            //Keep from disconnecting when idle.
+            InitializeKeepAlive();
         }
 
         private void CheckForUpdates()
@@ -82,30 +110,18 @@ namespace Auxilium
                         {
                             WebClient wc = new WebClient();
                             wc.Proxy = null;
-                            wc.DownloadStringCompleted += wc_DownloadStringCompleted;
-                            wc.DownloadStringAsync(new Uri("http://coleak.com/auxilium/update.txt"));
+                            //Not sure why I was downloading Async before, considering it's already in a new thread...
+                            string[] values = wc.DownloadString("http://coleak.com/auxilium/update.txt").Split('~');
+                            if (values[0] != Application.ProductVersion)
+                                Auxilium.Update(values[1]);
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine(ex.ToString());
+                            Debug.Print(ex.ToString());
                         }
                         Thread.Sleep(150000);
                     }
                 }).Start();
-        }
-
-        void wc_DownloadStringCompleted(object sender, DownloadStringCompletedEventArgs e)
-        {
-            //In case server throws a 404, or any other type of error, catch it. THis caused crashes before.
-            try
-            {
-                string[] values = e.Result.Split('~');
-
-                if (values[0] != Application.ProductVersion)
-                    Auxilium.Update(values[1]);
-            } catch (Exception ex) {
-                Console.WriteLine(ex.ToString());
-            }
         }
 
         #endregion
@@ -156,7 +172,7 @@ namespace Auxilium
                     HandleUsersPacket(values);
                     break;
                 case ServerPacket.UserJoin:
-                    HandleUserJoinPacket((ushort)values[1], (string)values[2]);
+                    HandleUserJoinPacket((ushort)values[1], (string)values[2], (bool)values[3]);
                     break;
                 case ServerPacket.UserLeave:
                     HandleUserLeavePacket((ushort)values[1], (string)values[2]);
@@ -173,6 +189,9 @@ namespace Auxilium
                 case ServerPacket.BanList:
                     HandleBanListPacket((string)values[1]);
                     break;
+                case ServerPacket.PM:
+                    HandlePM((string)values[1], (string)values[2], (string)values[3]);
+                    break;
             }
         }
 
@@ -187,7 +206,7 @@ namespace Auxilium
 
             if (success)
             {
-                menuStrip1.Enabled = true;
+                msMenu.Enabled = true;
                 tslUsersOnline.Visible = true;
                 tslChatting.Text = "Username: " + Username;
 
@@ -198,6 +217,29 @@ namespace Auxilium
             else
             {
                 MessageBox.Show("Failed to login. Please check your username and password.");
+            }
+        }
+
+        private void HandlePM(string user, string message, string subject)
+        {
+            PMs.Add(new PrivateMessage(subject, user, DateTime.Now, message));
+
+            if (ShowChatNotifications)
+            {
+                Auxilium.FlashWindow(this.Handle, true);
+                niAux.ShowBalloonTip(100, "New Private Message", string.Format("Message From: {0}\nSubject: {1}", user, subject), ToolTipIcon.Info);
+
+                string pt = pMsToolStripMenuItem.Text;
+
+                pMsToolStripMenuItem.Text = "PMs (" + (UnreadPMs += 1) + ")";
+
+                //Check if PM window is open, and update it if it is.
+                Form getForm = null;
+                if (!(CheckFormIsOpen(typeof(PrivateMessages), out getForm) == null))
+                {
+                    ((PrivateMessages)getForm).PMs = PMs.ToArray();
+                    ((PrivateMessages)getForm).LoadPMs();
+                }
             }
         }
 
@@ -238,20 +280,28 @@ namespace Auxilium
             lvUsers.BeginUpdate();
             lvUsers.Items.Clear();
 
-            for (int i = 1; i < values.Length; i += 2)
+            for (int i = 1; i < values.Length; i += 3)
             {
                 //id1, name1, id2, name2, etc.
                 Users.Add((ushort)values[i], (string)values[i + 1]);
 
+                int index = ((bool)values[i + 2]) ? 1 : 0;
+
+                ListViewItem li = new ListViewItem((string)values[i + 1])
+                {
+                    Name = values[i].ToString(),
+                    ImageIndex = index
+                };
+
                 //Add to ListView and set key (name).
-                lvUsers.Items.Add((string)values[i + 1]).Name = values[i].ToString();
+                lvUsers.Items.Add(li);
             }
 
             lvUsers.EndUpdate();
             UpdateUserCount();
         }
 
-        private void HandleUserJoinPacket(ushort id, string name)
+        private void HandleUserJoinPacket(ushort id, string name, bool admin)
         {
             if (Users.ContainsKey(id) || Users.ContainsValue(name))
             {
@@ -261,9 +311,18 @@ namespace Auxilium
                         lvUsers.Items.Remove(lvi);
             }
             Users.Add(id, name);
-            lvUsers.Items.Add(name).Name = id.ToString();
+            int index = admin ? 1 : 0;
+            ListViewItem li = new ListViewItem(name)
+            {
+                Name = id.ToString(),
+                ImageIndex = index
+            };
+
+            if (!(name == Username) && ShowJoinLeaveEvents)
+                AppendChat(Color.Green, Color.Green, name, "has joined the chat!");
+
+            lvUsers.Items.Add(li);
             UpdateUserCount();
-			AppendChat(Color.LightGreen, Color.LightGreen, name, "has joined the chat!");
         }
 
         private void RemoveUserFromList(string name)
@@ -271,7 +330,8 @@ namespace Auxilium
             foreach (ListViewItem lvi in lvUsers.Items)
                 if (lvi.Text == name)
                     lvUsers.Items.Remove(lvi);
-            
+            if (ShowJoinLeaveEvents)
+                AppendChat(Color.Red, Color.Red, name, "has left.");
         }
 
         private void HandleUserLeavePacket(ushort id, string name)
@@ -279,7 +339,6 @@ namespace Auxilium
             Users.Remove(id);
             RemoveUserFromList(name);
             UpdateUserCount();
-			AppendChat(Color.Red, Color.Red, name, "has parted!");
         }
 
         //TODO: Suport custom server colors?
@@ -294,16 +353,16 @@ namespace Auxilium
         private void HandleChatterPacket(ushort id, string message)
         {
             string name = Users[id];
+            
             AppendChat(Color.Blue, Color.Black, name, message);
 
-            if (ShowChatNotifications && !IsForegroundWindow && !(name == Username))
+            if (ShowChatNotifications && !IsForegroundWindow)
             {
                 Auxilium.FlashWindow(this.Handle, true);
-                niChat.ShowBalloonTip(100, name, message, ToolTipIcon.Info);
+                niAux.ShowBalloonTip(100, name, message, ToolTipIcon.Info);
             }
         }
 
-        
         private void HandleBanListPacket(string list)
         {
             AppendChat(Color.Red, Color.Black, "Ban List", list);
@@ -315,7 +374,7 @@ namespace Auxilium
             if (ShowChatNotifications && !IsForegroundWindow)
             {
                 Auxilium.FlashWindow(this.Handle, true);
-                niChat.ShowBalloonTip(100, "Global Broadcast", message, ToolTipIcon.Info);
+                niAux.ShowBalloonTip(100, "Global Broadcast", message, ToolTipIcon.Info);
             }
         }
 
@@ -327,7 +386,7 @@ namespace Auxilium
         {
             tslChatting.Text = "Status: Connecting to server..";
             Connection.Connect("127.0.0.1", 3357);
-            //Connection.Connect("173.214.164.237", 3357);
+
         }
 
         private void HandleBadConnection()
@@ -336,12 +395,36 @@ namespace Auxilium
             ChangeChatState(true);
             InvalidateChat();
 
-            menuStrip1.Enabled = false;
+            msMenu.Enabled = false;
             tslUsersOnline.Visible = false;
 
             button2.Enabled = true;
             hiddenTab1.SelectedIndex = (int)MenuScreen.Reconnect;
             tslChatting.Text = "Status: Connection to server failed or lost.";
+        }
+
+        private Form CheckFormIsOpen(Type chkForm, out Form frm)
+        {
+            foreach (Form OpenForm in Application.OpenForms)
+                if (OpenForm.GetType() == chkForm)
+                    return frm = OpenForm;
+            return frm = null;
+        }
+
+        private void InitializeKeepAlive()
+        {
+            new Thread(() =>
+                {
+                    while (true)
+                    {
+                        Thread.Sleep(30000);
+                        if (Connection.Connected)
+                        {
+                            byte[] data = Packer.Serialize((byte)ClientPacket.KeepAlive);
+                            Connection.Send(data);
+                        }
+                    }
+                }).Start();
         }
 
         public bool IsForegroundWindow
@@ -353,7 +436,7 @@ namespace Auxilium
         }
         #endregion
 
-        #region " Main Buttons "
+        #region " UI Events "
 
         private void btnRegister_Click(object sender, EventArgs e)
         {
@@ -386,6 +469,23 @@ namespace Auxilium
             //Disable login elements so user doesn't get click happy.
             ChangeSignInState(false);
 
+            //Remember Me.
+            if (cbRemember.Checked)
+            {
+                RegistryKey rKey = null;
+                try
+                {
+                    rKey = Registry.CurrentUser.OpenSubKey("Software\\Auxilium", true);
+                    rKey.SetValue("Username", tbUser.Text.Trim());
+                    rKey.SetValue("Password", tbPass.Text.Trim());
+                } catch {
+                    rKey = Registry.CurrentUser.CreateSubKey("Software\\Auxilium");
+                    rKey.SetValue("Username", tbUser.Text.Trim());
+                    rKey.SetValue("Password", tbPass.Text.Trim());
+                }
+
+            }
+
             string name = tbUser.Text.Trim();
             string pass = tbPass.Text.Trim().ToLower();
 
@@ -400,6 +500,7 @@ namespace Auxilium
         {
             //Handle reconnect.
             button2.Enabled = false;
+            PMs.Clear();
             ConnectToServer();
         }
 
@@ -409,6 +510,29 @@ namespace Auxilium
             {
                 btnLogin.PerformClick();
                 e.SuppressKeyPress = true;
+            }
+        }
+
+        private void pMsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new PrivateMessages(PMs.ToArray(), Connection).Show();
+            pMsToolStripMenuItem.Text = "PMs";
+        }
+
+        private void contextMenuStrip1_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (lvUsers.SelectedItems.Count < 1)
+                e.Cancel = true;
+            //else if (lvUsers.SelectedItems[0].Text == Username)
+            //    e.Cancel = true;
+        }
+
+        private void sendPMToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            InputBox ip = new InputBox();
+            if (ip.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                new PrivateMessages(PMs.ToArray(), 3, lvUsers.SelectedItems[0].Text, ip.Result, Connection).Show();
             }
         }
 
@@ -436,9 +560,9 @@ namespace Auxilium
             ShowChatNotifications = showChatNotificationsToolStripMenuItem.Checked;
         }
 
-        private void allowPrivateChatsToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        private void showTimestampsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            AllowPrivateChats = allowPrivateChatsToolStripMenuItem.Checked;
+            ShowJoinLeaveEvents = showTimestampsToolStripMenuItem.Checked;
         }
 
         private void changeFontToolStripMenuItem_Click(object sender, EventArgs e)
@@ -501,17 +625,14 @@ namespace Auxilium
             if (ShowTimestamps)
                 sender = string.Format("[{0}] {1}", DateTime.Now.ToShortTimeString(), sender);
 
-            if (name == Username)
-            {
-                nameColor = Color.ForestGreen;
-                msgColor = Color.DimGray;
-            }
-
             AppendText(nameColor, sender);
             AppendText(msgColor, message);
             AppendLine();
+
             rtbChat.SelectionStart = rtbChat.Text.Length;
-            rtbChat.ScrollToCaret();
+            if (Auxilium.CheckBottom(rtbChat))
+                rtbChat.ScrollToCaret();
+
             if (SpaceOutMessages)
                 AppendLine();
         }
@@ -531,11 +652,12 @@ namespace Auxilium
             rtbChat.AppendText(text);
             rtbChat.SelectionColor = rtbChat.ForeColor;
 
+
             if (EndOfChat)
             {
                 //Scroll to bottom of chat.
                 rtbChat.SelectionStart = rtbChat.Text.Length;
-                rtbChat.ScrollToCaret();
+                if (Auxilium.CheckBottom(rtbChat)) rtbChat.ScrollToCaret();
             }
             else
             {
@@ -562,7 +684,7 @@ namespace Auxilium
         private void splitContainer2_SplitterMoved(object sender, SplitterEventArgs e)
         {
             //Prevents the bottom scroll bars from showing.
-            lvUsers.Columns[0].Width = lvUsers.Width - 24;
+            lvUsers.Columns[0].Width = lvUsers.Width - 5;
         }
 
         private void niChat_BalloonTipClicked(object sender, EventArgs e)
@@ -586,8 +708,8 @@ namespace Auxilium
         private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
         {
             //Removes the notify icon from the system tray.
-            niChat.Visible = false;
-            niChat.Dispose();
+            niAux.Visible = false;
+            niAux.Dispose();
             Environment.Exit(0);
         }
 
@@ -618,8 +740,7 @@ namespace Auxilium
                 if (!string.IsNullOrEmpty(message))
                 {
                     //Show message locally. May want to wait for verification from server.
-                    //AppendChat(Color.ForestGreen, Color.DimGray, Username, message);
-                    ///Now waits for server to get it and send it back.
+                    AppendChat(Color.ForestGreen, Color.DimGray, Username, message);
 
                     //Send the chat message to the server.
                     byte[] data = Packer.Serialize((byte)ClientPacket.ChatMessage, message);
@@ -628,7 +749,6 @@ namespace Auxilium
                     rtbMessage.Clear();
                 }
             }
-
         }
 
         private void tsmSignOut_Click(object sender, EventArgs e)
@@ -636,6 +756,34 @@ namespace Auxilium
             tsmSignOut.Enabled = false;
             hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
             ConnectToServer();
+        }
+
+        private void frmMain_Resize(object sender, EventArgs e)
+        {
+            lvUsers.Columns[0].Width = lvUsers.Width - 5;
+        }
+
+        private void frmMain_Activated(object sender, EventArgs e)
+        {
+            if (hiddenTab1.SelectedIndex == (int)MenuScreen.Chat)
+                rtbMessage.Select();
+        }
+
+        private void pasteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string s = Clipboard.GetText();
+                rtbMessage.Text += Clipboard.GetText();
+                rtbMessage.SelectionStart += s.Length;
+            }
+            catch { }
+        }
+
+        private void rtbChat_VScroll(object sender, EventArgs e)
+        {
+            //Honestly not sure if this is needed, I'm just extremely tired.
+            rtbChat.SelectionStart = rtbChat.TextLength;
         }
         #endregion
 
@@ -646,10 +794,11 @@ namespace Auxilium
             SignIn,
             Register,
             Chat,
-            Reconnect
+            Reconnect,
+            PrivateMessages
         }
 
-        enum ServerPacket : byte
+        public enum ServerPacket : byte
         {
             SignIn,
             Register,
@@ -660,15 +809,19 @@ namespace Auxilium
             MOTD,
             Chatter,
             GlobalMsg,
-            BanList
+            BanList,
+            PM,
+            KeepAlive
         }
 
-        enum ClientPacket : byte
+        public enum ClientPacket : byte
         {
             SignIn,
             Register,
             Channel,
-            ChatMessage
+            ChatMessage,
+            PM,
+            KeepAlive
         }
 
         #endregion

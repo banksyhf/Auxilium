@@ -11,5 +11,6 @@ namespace Auxilium_Server.Classes
         public bool Authenticated;
         public ushort UserID;
         public byte Channel;
+       
     }
 }

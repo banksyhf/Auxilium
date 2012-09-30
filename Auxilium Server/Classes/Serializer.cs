@@ -98,6 +98,9 @@ namespace Auxilium_Server.Classes{
                     case 16:
                         Writer.Write(((System.DateTime)data[I]).ToBinary());
                         break;
+                    case 17:
+
+                        break;
                 }
             }
 

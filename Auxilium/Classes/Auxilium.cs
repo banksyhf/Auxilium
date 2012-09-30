@@ -57,7 +57,15 @@ namespace Auxilium
             catch { }
         }
 
-        #region APIs
+        internal static bool CheckBottom(RichTextBox rtb)
+        {
+            Scrollbarinfo info = new Scrollbarinfo();
+            info.CbSize = Marshal.SizeOf(info);
+            int res = GetScrollBarInfo(rtb.Handle, ObjidVscroll, ref info);
+            return info.XyThumbBottom > (info.RcScrollBar.Bottom - info.RcScrollBar.Top - (info.DxyLineButton * 2));
+        }
+
+        #region APIs/Types
 
         [DllImport("user32.dll")]
         public static extern int SetForegroundWindow(IntPtr handle);
@@ -68,6 +76,30 @@ namespace Auxilium
         [DllImport("user32.dll")]
         public static extern IntPtr GetForegroundWindow();
 
+        [DllImport("user32.dll", SetLastError = true, EntryPoint = "GetScrollBarInfo")]
+        private static extern int GetScrollBarInfo(IntPtr hWnd, uint idObject, ref Scrollbarinfo psbi);
+
+        public const uint ObjidVscroll = 0xFFFFFFFB;
+
+        public struct Scrollbarinfo
+        {
+            public int CbSize;
+            public Rect RcScrollBar;
+            public int DxyLineButton;
+            public int XyThumbTop;
+            public int XyThumbBottom;
+            public int Reserved;
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
+            public int[] Rgstate;
+        }
+
+        public struct Rect
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
         #endregion
     }
 }
