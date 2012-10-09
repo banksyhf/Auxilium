@@ -23,7 +23,7 @@ namespace Auxilium
         private Pack Packer;
 
         //We'll use this to cache usernames.
-        private Dictionary<ushort, string> Users;
+        private List<User> Users;
 
         private List<PrivateMessage> PMs = new List<PrivateMessage>();
 
@@ -57,28 +57,11 @@ namespace Auxilium
             Connection.Client_Read += Client_Read;
 
             //Initialize other variables..
-            Users = new Dictionary<ushort, string>();
+            Users = new List<User>();
 
             //Prevents the header from auto-resizing.
             lvUsers.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.None);
 
-            //Remember Me
-            RegistryKey rk = Registry.CurrentUser.OpenSubKey("Software\\Auxilium");
-
-            if (!(rk == null))
-            {
-                string[] names = rk.GetValueNames();
-                if (names.Contains("Username"))
-                {
-                    tbUser.Text = (string)rk.GetValue("Username");
-                    cbRemember.Checked = true;
-                }
-                if (names.Contains("Password"))
-                {
-                    tbPass.Text = (string)rk.GetValue("Password");
-                    cbRemember.Checked = true;
-                }
-            }
         }
 
         private void frmMain_Shown(object sender, EventArgs e)
@@ -97,6 +80,32 @@ namespace Auxilium
             ConnectToServer();
             //Keep from disconnecting when idle.
             InitializeKeepAlive();
+
+            //Remember Me
+            RegistryKey rk = Registry.CurrentUser.OpenSubKey("Software\\Auxilium");
+
+            if (!(rk == null))
+            {
+                string[] names = rk.GetValueNames();
+                if (names.Contains("Username"))
+                {
+                    tbUser.Text = (string)rk.GetValue("Username");
+                    cbRemember.Checked = true;
+                }
+                if (names.Contains("Password"))
+                {
+                    tbPass.Text = (string)rk.GetValue("Password");
+                    cbRemember.Checked = true;
+                }
+                if (names.Contains("Auto"))
+                {
+                    if (Convert.ToBoolean((string)rk.GetValue("Auto")))
+                    {
+                        cbAuto.Checked = true;
+                        Login();
+                    }
+                }
+            }
         }
 
         private void CheckForUpdates()
@@ -283,7 +292,7 @@ namespace Auxilium
             for (int i = 1; i < values.Length; i += 3)
             {
                 //id1, name1, id2, name2, etc.
-                Users.Add((ushort)values[i], (string)values[i + 1]);
+                Users.Add(new User((ushort)values[i], (string)values[i + 1], (bool)values[i + 2]));
 
                 int index = ((bool)values[i + 2]) ? 1 : 0;
 
@@ -303,19 +312,17 @@ namespace Auxilium
 
         private void HandleUserJoinPacket(ushort id, string name, bool admin)
         {
-            if (Users.ContainsKey(id) || Users.ContainsValue(name))
-            {
-                Users.Remove(id);
-                foreach (ListViewItem lvi in lvUsers.Items)
-                    if (lvi.Text == name)
-                        lvUsers.Items.Remove(lvi);
-            }
-            Users.Add(id, name);
+
+            Users.Remove(Users.FirstOrDefault(x => x.ID == id && x.Name == name));
+            lvUsers.Items.Remove(lvUsers.Items.Cast<ListViewItem>().FirstOrDefault(x => x.Text == name));
+
+            Users.Add(new User(id, name, admin));
             int index = admin ? 1 : 0;
             ListViewItem li = new ListViewItem(name)
             {
                 Name = id.ToString(),
-                ImageIndex = index
+                ImageIndex = index,
+                Tag = admin
             };
 
             if (!(name == Username) && ShowJoinLeaveEvents)
@@ -327,16 +334,16 @@ namespace Auxilium
 
         private void RemoveUserFromList(string name)
         {
-            foreach (ListViewItem lvi in lvUsers.Items)
-                if (lvi.Text == name)
-                    lvUsers.Items.Remove(lvi);
+            lvUsers.Items.Remove(lvUsers.Items.Cast<ListViewItem>().FirstOrDefault(x => x.Text == name));
+
             if (ShowJoinLeaveEvents)
                 AppendChat(Color.Red, Color.Red, name, "has left.");
         }
 
         private void HandleUserLeavePacket(ushort id, string name)
         {
-            Users.Remove(id);
+            Users.Remove(Users.FirstOrDefault(x => x.ID == id && x.Name == name));
+
             RemoveUserFromList(name);
             UpdateUserCount();
         }
@@ -352,14 +359,19 @@ namespace Auxilium
         //TODO: Suport custom server colors?
         private void HandleChatterPacket(ushort id, string message)
         {
-            string name = Users[id];
-            
-            AppendChat(Color.Blue, Color.Black, name, message);
+            User user = Users.FirstOrDefault(x => x.ID == id);
+
+            if (user == null)
+                return;
+
+            Color nColor = (user.Admin) ? Color.Red : Color.Blue;
+
+            AppendChat(nColor, Color.Black, user.Name, message);
 
             if (ShowChatNotifications && !IsForegroundWindow)
             {
                 Auxilium.FlashWindow(this.Handle, true);
-                niAux.ShowBalloonTip(100, name, message, ToolTipIcon.Info);
+                niAux.ShowBalloonTip(100, user.Name, message, ToolTipIcon.Info);
             }
         }
 
@@ -386,7 +398,6 @@ namespace Auxilium
         {
             tslChatting.Text = "Status: Connecting to server..";
             Connection.Connect("127.0.0.1", 3357);
-
         }
 
         private void HandleBadConnection()
@@ -405,10 +416,43 @@ namespace Auxilium
 
         private Form CheckFormIsOpen(Type chkForm, out Form frm)
         {
-            foreach (Form OpenForm in Application.OpenForms)
-                if (OpenForm.GetType() == chkForm)
-                    return frm = OpenForm;
-            return frm = null;
+            return frm = Application.OpenForms.Cast<Form>().FirstOrDefault(x => x.GetType() == chkForm);
+        }
+
+        private void Login()
+        {
+            //Disable login elements so user doesn't get click happy.
+            ChangeSignInState(false);
+
+            //Remember Me.
+            if (cbRemember.Checked)
+            {
+                RegistryKey rKey = null;
+                try
+                {
+                    rKey = Registry.CurrentUser.OpenSubKey("Software\\Auxilium", true);
+                    rKey.SetValue("Username", tbUser.Text.Trim());
+                    rKey.SetValue("Password", tbPass.Text.Trim());
+                    rKey.SetValue("Auto", cbAuto.Checked.ToString());
+                }
+                catch
+                {
+                    rKey = Registry.CurrentUser.CreateSubKey("Software\\Auxilium");
+                    rKey.SetValue("Username", tbUser.Text.Trim());
+                    rKey.SetValue("Password", tbPass.Text.Trim());
+                    rKey.SetValue("Auto", cbAuto.Checked.ToString());
+                }
+
+            }
+
+            string name = tbUser.Text.Trim();
+            string pass = tbPass.Text.Trim().ToLower();
+
+            Username = name;
+            pass = Auxilium.SHA1(pass);
+
+            byte[] data = Packer.Serialize((byte)ClientPacket.SignIn, name, pass);
+            Connection.Send(data);
         }
 
         private void InitializeKeepAlive()
@@ -466,42 +510,15 @@ namespace Auxilium
         //TODO: Sanitize server side?
         private void btnLogin_Click(object sender, EventArgs e)
         {
-            //Disable login elements so user doesn't get click happy.
-            ChangeSignInState(false);
-
-            //Remember Me.
-            if (cbRemember.Checked)
-            {
-                RegistryKey rKey = null;
-                try
-                {
-                    rKey = Registry.CurrentUser.OpenSubKey("Software\\Auxilium", true);
-                    rKey.SetValue("Username", tbUser.Text.Trim());
-                    rKey.SetValue("Password", tbPass.Text.Trim());
-                } catch {
-                    rKey = Registry.CurrentUser.CreateSubKey("Software\\Auxilium");
-                    rKey.SetValue("Username", tbUser.Text.Trim());
-                    rKey.SetValue("Password", tbPass.Text.Trim());
-                }
-
-            }
-
-            string name = tbUser.Text.Trim();
-            string pass = tbPass.Text.Trim().ToLower();
-
-            Username = name;
-            pass = Auxilium.SHA1(pass);
-
-            byte[] data = Packer.Serialize((byte)ClientPacket.SignIn, name, pass);
-            Connection.Send(data);
+            Login();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
             //Handle reconnect.
+            ConnectToServer();
             button2.Enabled = false;
             PMs.Clear();
-            ConnectToServer();
         }
 
         private void tbPass_KeyDown(object sender, KeyEventArgs e)
@@ -513,8 +530,18 @@ namespace Auxilium
             }
         }
 
+        private void tbUser_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                btnLogin.PerformClick();
+                e.SuppressKeyPress = true;
+            }
+        }
+
         private void pMsToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            UnreadPMs = 0;
             new PrivateMessages(PMs.ToArray(), Connection).Show();
             pMsToolStripMenuItem.Text = "PMs";
         }
@@ -536,33 +563,50 @@ namespace Auxilium
             }
         }
 
+        private void tsmDonations_Click(object sender, EventArgs e)
+        {
+            //In need of money for server costs! :(
+            Process.Start("http://www.hackforums.net/private.php?action=send&uid=498184&subject=Donation%20For%20Auxilium&message=I%20would%20like%20to%20donate%20to%20Auxilium.");
+        }
+
+        private void tsmSuggestions_Click(object sender, EventArgs e)
+        {
+            Process.Start("http://imminentmethods.info/auxilium/");
+        }
+
         #endregion
 
         #region " Options "
 
-        private void showTimestampsToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        private void tsmTimestamps_CheckedChanged(object sender, EventArgs e)
         {
-            ShowTimestamps = showTimestampsToolStripMenuItem.Checked;
+            ShowTimestamps = tsmTimestamps.Checked;
         }
 
-        private void spaceOutMessagesToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        private void tsmChatNotifications_CheckedChanged(object sender, EventArgs e)
         {
-            SpaceOutMessages = spaceOutMessagesToolStripMenuItem.Checked;
+            ShowChatNotifications = tsmChatNotifications.Checked;
         }
+
+        private void tsmSpaceMessages_CheckedChanged(object sender, EventArgs e)
+        {
+            SpaceOutMessages = tsmSpaceMessages.Checked;
+        }
+
+        private void tsmUserJoinEvents_CheckedChanged(object sender, EventArgs e)
+        {
+            ShowJoinLeaveEvents = tsmUserJoinEvents.Checked;
+        }
+
 
         private void writeMessagesToFileToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
             WriteMessageToFile = writeMessagesToFileToolStripMenuItem.Checked;
         }
 
-        private void showChatNotificationsToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
-        {
-            ShowChatNotifications = showChatNotificationsToolStripMenuItem.Checked;
-        }
-
         private void showTimestampsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            ShowJoinLeaveEvents = showTimestampsToolStripMenuItem.Checked;
+            ShowJoinLeaveEvents = tsmUserJoinEvents.Checked;
         }
 
         private void changeFontToolStripMenuItem_Click(object sender, EventArgs e)
@@ -592,6 +636,7 @@ namespace Auxilium
             tbUser.Enabled = enable;
             tbPass.Enabled = enable;
             cbRemember.Enabled = enable;
+            cbAuto.Enabled = enable;
         }
 
         private void ChangeRegisterState(bool enable)
@@ -753,9 +798,9 @@ namespace Auxilium
 
         private void tsmSignOut_Click(object sender, EventArgs e)
         {
+            ConnectToServer();
             tsmSignOut.Enabled = false;
             hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
-            ConnectToServer();
         }
 
         private void frmMain_Resize(object sender, EventArgs e)
@@ -785,46 +830,6 @@ namespace Auxilium
             //Honestly not sure if this is needed, I'm just extremely tired.
             rtbChat.SelectionStart = rtbChat.TextLength;
         }
-        #endregion
-
-        #region " Custom Types "
-
-        enum MenuScreen
-        {
-            SignIn,
-            Register,
-            Chat,
-            Reconnect,
-            PrivateMessages
-        }
-
-        public enum ServerPacket : byte
-        {
-            SignIn,
-            Register,
-            UserList,
-            UserJoin,
-            UserLeave,
-            ChannelList,
-            MOTD,
-            Chatter,
-            GlobalMsg,
-            BanList,
-            PM,
-            KeepAlive
-        }
-
-        public enum ClientPacket : byte
-        {
-            SignIn,
-            Register,
-            Channel,
-            ChatMessage,
-            PM,
-            KeepAlive
-        }
-
-        #endregion
-
+        #endregion   
     }
 }

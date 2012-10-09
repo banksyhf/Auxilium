@@ -56,11 +56,12 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.XML" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Classes\Connection.cs" />
-    <Compile Include="Classes\Serializer.cs" />
-    <Compile Include="Classes\UserState.cs" />
+    <Compile Include="Connection.cs" />
+    <Compile Include="Serializer.cs" />
+    <Compile Include="UserState.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">

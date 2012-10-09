@@ -102,4 +102,51 @@ namespace Auxilium
         }
         #endregion
     }
+    public enum MenuScreen
+    {
+        SignIn,
+        Register,
+        Chat,
+        Reconnect,
+        PrivateMessages
+    }
+
+    public enum ServerPacket : byte
+    {
+        SignIn,
+        Register,
+        UserList,
+        UserJoin,
+        UserLeave,
+        ChannelList,
+        MOTD,
+        Chatter,
+        GlobalMsg,
+        BanList,
+        PM,
+        KeepAlive
+    }
+
+    public enum ClientPacket : byte
+    {
+        SignIn,
+        Register,
+        Channel,
+        ChatMessage,
+        PM,
+        KeepAlive
+    }
+
+    public class User
+    {
+        public string Name;
+        public ushort ID;
+        public bool Admin;
+        public User(ushort id, string name, bool admin)
+        {
+            Name = name;
+            ID = id;
+            Admin = admin;
+        }
+    }
 }

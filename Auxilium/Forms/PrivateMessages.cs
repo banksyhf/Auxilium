@@ -86,9 +86,10 @@ namespace Auxilium.Forms
 
         private void btnReplySend_Click(object sender, EventArgs e)
         {
-            byte[] data = Packer.Serialize((byte)frmMain.ClientPacket.PM, UserName, rtbReply.Text, Subject);
+            byte[] data = Packer.Serialize((byte)ClientPacket.PM, UserName, rtbReply.Text, Subject);
             Connection.Send(data);
             hiddenTab1.SelectedIndex = 0;
+            rtbReply.Text = string.Empty;
         }
 
         private void btnSendBack_Click(object sender, EventArgs e)
@@ -98,7 +99,7 @@ namespace Auxilium.Forms
 
         private void btnSendMessage_Click(object sender, EventArgs e)
         {
-            byte[] data = Packer.Serialize((byte)frmMain.ClientPacket.PM, UserName, rtbSendMessage.Text, Subject);
+            byte[] data = Packer.Serialize((byte)ClientPacket.PM, UserName, rtbSendMessage.Text, Subject);
             Connection.Send(data);
             hiddenTab1.SelectedIndex = 0;
         }
