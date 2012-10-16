@@ -9,12 +9,12 @@ using System.Collections;
 using MySql.Data.MySqlClient;
 using System.Globalization;
 using System.Data;
+using System.Threading;
 
 namespace Auxilium_Server
 {
     class Program
     {
-
         #region " Declarations "
 
         static ushort Port = 3357;
@@ -22,20 +22,19 @@ namespace Auxilium_Server
 
         static string[] Channels;
 
-        static List<string> BanList = new List<string>();
-
-        static MySqlDataReader r;
-
-        static DataTable UserDT = new DataTable();
-        static DataTable SettingsDT = new DataTable();
-
-        static List<string> MuteList = new List<string>();
+        static string MOTD;
 
         static int Reconnect;
 
         static Pack Packer;
         static Server Listener;
 
+        static DateTime LastBackup;
+
+        static System.Threading.Timer ChatMonitor;
+
+        //There needs to be more than one SQL connection
+        //Otherwise the entire DB can get locked up.
         static MySqlConnection SQL;
 
         #endregion
@@ -50,26 +49,78 @@ namespace Auxilium_Server
 
             Channels = new string[] { "Lounge", "VB.NET", "C#" };
 
-            GetQuery("SELECT * FROM users", 0);
+            MOTD = GetMOTD();
 
             Packer = new Pack();
             Listener = new Server();
 
             Listener.Size = 2048;
             Listener.Client_Read += Client_Read;
-            Listener.MaxConnections = 10000;
+            Listener.MaxConnections = 1000;
             Listener.Client_State += Client_State;
             Listener.Server_State += Server_State;
             Listener.Listen(Port);
 
-            
+            //Create the chat monitor timer.
+            ChatMonitor = new Timer(Monitor, null, 1000, 240000); //240,000 = 4 Minutes
+            LastBackup = DateTime.Now;
+
             while (true)
             {
                 string str = string.Empty;
-                if (Console.ReadKey().Key == ConsoleKey.Escape)
-                    break;
-                else if (!string.IsNullOrWhiteSpace(str = Console.ReadLine()))
+                if (!string.IsNullOrWhiteSpace(str = Console.ReadLine()))
                     ProcessCommand(str);
+                else if (Console.ReadKey().Key == ConsoleKey.Escape)
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region " Monitor "
+
+        static void Monitor(object state)
+        {
+            if (!Listener.Listening)
+                return;
+
+            CheckSaveUsers();
+        }
+
+        static void CheckSaveUsers(Client s = null)
+        {
+            DateTime check = DateTime.Now;
+            foreach (Client c in Listener.Clients)
+            {
+                if ((DateTime.Now - c.Value.LastAction).TotalMinutes >=  3)
+                {
+                    c.Value.Idle = true;
+                }
+
+                double Points = (DateTime.Now - c.Value.LastPayout).TotalSeconds * 0.85;
+
+                if (c.Value.Idle)
+                {
+                    c.Value.AddPoints((int)(Points * 0.1));
+                }
+                else
+                {
+                   c.Value.AddPoints((int)Points);
+                }
+
+                FullUserListUpdate();
+
+                if ((check - LastBackup).TotalMinutes >= 20)
+                {
+                    LastBackup = DateTime.Now;
+                    MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+                    q.CommandText = "UPDATE users SET Points=@Points,Rank=@Rank,Mute=@Mute WHERE Username=@Username;";
+                    q.Parameters.AddWithValue("@Points", c.Value.Points);
+                    q.Parameters.AddWithValue("@Rank", c.Value.Rank);
+                    q.Parameters.AddWithValue("@Mute", c.Value.Mute);
+                    q.Parameters.AddWithValue("@Username", c.Value.Username);
+                    q.ExecuteNonQuery();
+                }
             }
         }
 
@@ -79,14 +130,33 @@ namespace Auxilium_Server
 
         static void Broadcast(byte channel, byte[] data)
         {
-            ILookup<bool, Client> lookup = Listener.Clients.ToLookup(x => x.Value.Authenticated && x.Value.Channel == channel);
-            lookup[true].ToList().ForEach(x => x.Send(data));
+            foreach (Client c in Listener.Clients)
+            {
+                if (c.Value.Authenticated && c.Value.Channel == channel)
+                {
+                    c.Send(data);
+                }
+            }
         }
 
         static void BroadcastExclusive(ushort userID, byte channel, byte[] data)
         {
-            ILookup<bool, Client> lookup = Listener.Clients.ToLookup(x => x.Value.Authenticated && x.Value.Channel == channel && x.Value.UserID != userID);
-            lookup[true].ToList().ForEach(x => x.Send(data));
+            foreach (Client c in Listener.Clients)
+            {
+                if (c.Value.Authenticated && c.Value.Channel == channel && c.Value.UserID != userID)
+                {
+                    c.Send(data);
+                }
+            }
+        }
+
+        static void GlobalBroadcast(byte[] data)
+        {
+            foreach (Client c in Listener.Clients)
+            {
+                if (c.Value.Authenticated)
+                    c.Send(data);
+            }
         }
 
         #endregion
@@ -120,13 +190,29 @@ namespace Auxilium_Server
             if (open)
             {
                 c.Value = new UserState();
+                if (!string.IsNullOrEmpty(MOTD))
+                {
+                    byte[] data = Packer.Serialize((byte)ServerPacket.MOTD, MOTD);
+                    c.Send(data);
+                }
             }
             else
             {
                 if (c.Value.Authenticated)
                 {
-                    byte[] data = Packer.Serialize((byte)ServerPacket.UserLeave, c.Value.UserID, c.Value.Username);
+                    byte[] data = Packer.Serialize((byte)ServerPacket.UserLeave, c.Value.UserID);
                     Broadcast(c.Value.Channel, data);
+
+                    //Let's save the users data.
+                    MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+                    q.CommandText = "UPDATE users SET Points=@Points,Rank=@Rank,Mute=@Mute WHERE Username=@Username;";
+                    q.Parameters.AddWithValue("@Points", c.Value.Points);
+                    q.Parameters.AddWithValue("@Rank", c.Value.Rank);
+                    q.Parameters.AddWithValue("@Mute", c.Value.Mute);
+                    q.Parameters.AddWithValue("@Username", c.Value.Username);
+
+                    //If it fails there isn't much we can do about it.
+                    q.ExecuteNonQuery();
                 }
             }
         }
@@ -143,12 +229,15 @@ namespace Auxilium_Server
                     switch (packet)
                     {
                         case ClientPacket.Channel:
+                            HandleWakeup(c, true); //Supress the packet send here since we are changing rooms anyways.
                             HandleChannelPacket(c, (byte)values[1]);
                             break;
                         case ClientPacket.ChatMessage:
+                            HandleWakeup(c);
                             HandleChatPacket(c, (string)values[1]);
                             break;
                         case ClientPacket.PM:
+                            HandleWakeup(c);
                             HandlePMPacket((string)values[1], (string)values[2], (string)values[3], c.Value.Username);
                             break;
                         case ClientPacket.KeepAlive:
@@ -189,23 +278,51 @@ namespace Auxilium_Server
                 c.Send(fail);
                 return;
             }
-            GetBanList();
-            if (BanList.Contains(name.ToLower()))
-            {
-                c.Disconnect();
-                return;
-            }
 
-            bool success = UserDT.Rows
-                .Cast<DataRow>()
-                .ToList()
-                .Any(x => x.ItemArray[0].ToString().ToLower() == name.ToLower() && x.ItemArray[1].ToString() == pass);
 
-            byte[] data = Packer.Serialize((byte)ServerPacket.SignIn, success);
-            c.Send(data);
+            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+            q.CommandText = "SELECT Points, Rank, Ban, Mute FROM users WHERE Username=@Username AND Password=@Password;";
+            q.Parameters.AddWithValue("@Username", name);
+            q.Parameters.AddWithValue("@Password", pass);
+
+            MySqlDataReader r = q.ExecuteReader();
+            bool success = r.Read();
 
             if (success)
             {
+                int points = r.GetInt32("Points");
+                byte rank = r.GetByte("Rank");
+                bool ban = r.GetBoolean("Ban");
+                bool mute = r.GetBoolean("Mute");
+                r.Close();//TODO: Restructure this.
+
+                r.Dispose();
+
+                if (ban)
+                {
+                    c.Disconnect();
+                    return;
+                }
+
+                //Second ban check, checks ip table.
+                q = new MySqlCommand(string.Empty, SQL);
+                q.CommandText = "SELECT * FROM ipbans WHERE ip=@ip;";
+                q.Parameters.AddWithValue("@ip", c.EndPoint.Address.ToString());
+                r = q.ExecuteReader();
+                bool sCheck = r.Read();
+
+                r.Close();
+
+                if (sCheck)
+                {
+                    c.Disconnect();
+                    return;
+                }
+
+                byte[] data = Packer.Serialize((byte)ServerPacket.SignIn, true);
+                c.Send(data);
+
+
                 //If this user is already logged in from somewhere else then disconnect them.
                 Client existing = ClientFromUsername(name);
                 if (existing != null)
@@ -216,8 +333,22 @@ namespace Auxilium_Server
                 c.Value.UserID = RunningID++;
                 c.Value.Username = name;
 
+                c.Value.Points = points;
+                c.Value.Rank = rank;
+
+                c.Value.Mute = mute;
+
+                c.Value.LastPayout = DateTime.Now;
+                c.Value.LastAction = DateTime.Now;
+
                 c.Value.Authenticated = true;
                 SendLoginBarrage(c);
+            }
+            else
+            {
+                r.Close();//TODO: Restructure this.
+                byte[] data1 = Packer.Serialize((byte)ServerPacket.SignIn, false);
+                c.Send(data1);
             }
         }
 
@@ -225,37 +356,50 @@ namespace Auxilium_Server
         {
             if (name.Length == 0 || name.Length > 16 || pass.Length != 40)
             {
-                byte[] fail = Packer.Serialize((byte)ServerPacket.SignIn, false);
+                byte[] fail = Packer.Serialize((byte)ServerPacket.Register, false);
                 c.Send(fail);
                 return;
             }
 
-            if (UserDT.Rows.Cast<DataRow>().ToList().Any(x => x.ItemArray[0].ToString().ToLower() == name.ToLower()))
+            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+            q.CommandText = "SELECT Count(*) FROM users WHERE Username=@Username";
+            q.Parameters.AddWithValue("@Username", name);
+
+            MySqlDataReader r = q.ExecuteReader();
+            bool available = r.Read() && (r.GetInt16(0) == 0);
+            r.Close();
+
+            if (available)
             {
-                c.Send(Packer.Serialize((byte)ServerPacket.Register, false));
-                return;
+                MySqlCommand q2 = new MySqlCommand(string.Empty, SQL);
+                q2.CommandText = "INSERT INTO users VALUES (@Username,@Password,0,0,0,0);";
+                q2.Parameters.AddWithValue("@Username", name);
+                q2.Parameters.AddWithValue("@Password", pass);
+
+                //If registration fails, this will return false.
+                bool success = (q2.ExecuteNonQuery() != 0);
+
+                byte[] data = Packer.Serialize((byte)ServerPacket.Register, success);
+                c.Send(data);
+            }
+            else
+            {
+                byte[] data = Packer.Serialize((byte)ServerPacket.Register, false);
+                c.Send(data);
             }
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "INSERT INTO users VALUES (@Username,@Password,@Level);";
-            q.Parameters.AddWithValue("@Username", name);
-            q.Parameters.AddWithValue("@Password", pass);
-            q.Parameters.AddWithValue("@Level", 3);
-
-            bool success = (q.ExecuteNonQuery() != 0);
-
-            byte[] data = Packer.Serialize((byte)ServerPacket.Register, success);
-            c.Send(data);
-            GetQuery("SELECT * FROM users", 0);
         }
 
         static void HandleChannelPacket(Client c, byte channel)
         {
             if (channel < Channels.Length)
             {
-                byte oldChannel = c.Value.Channel;
+                //Let everyone in the old channel know this guy left.
+                byte[] data = Packer.Serialize((byte)ServerPacket.UserLeave, c.Value.UserID);
+                Broadcast(c.Value.Channel, data);
+
                 c.Value.Channel = channel;
-                SendUserListUpdates(c, oldChannel);
+                SendUserListUpdates(c);
             }
             else
             {
@@ -267,7 +411,7 @@ namespace Auxilium_Server
         static void HandlePMPacket(string username, string message, string subject, string from)
         {
             Client c = ClientFromUsername(username);
-            
+
             if (c == null)
                 return;
 
@@ -278,15 +422,17 @@ namespace Auxilium_Server
 
         static void HandleChatPacket(Client c, string message)
         {
-            if (GetUserLevel(c.Value.Username) & message.Contains("~"))
+            if (c.Value.Rank == (byte)SpecialRank.Admin && message.Contains("~"))
             {
                 Console.WriteLine(c.Value.Username + " executed admin command. Command: " + message);
                 ProcessCommand(message, c);
             }
             else
             {
-                if (MuteList.Contains(c.Value.Username.ToLower()))
+                if (c.Value.Mute)
                     return;
+
+                c.Value.AddPoints(5); //AWARD 5 POINTS FOR ACTIVITY*** (This will be less exploitable when anti-spam is implemented.)
 
                 byte[] data = Packer.Serialize((byte)ServerPacket.Chatter, c.Value.UserID, message);
                 BroadcastExclusive(c.Value.UserID, c.Value.Channel, data);
@@ -303,129 +449,86 @@ namespace Auxilium_Server
 
         #region " Helper Methods "
 
+        static void HandleWakeup(Client c, bool suppress = false)
+        {
+            c.Value.LastAction = DateTime.Now;
+
+            if (c.Value.Idle)
+            {
+                c.Value.Idle = false;
+
+                if (!suppress)
+                {
+                    byte[] data = Packer.Serialize((byte)ServerPacket.WakeUp, c.Value.UserID);
+                    Broadcast(c.Value.Channel, data);
+                } 
+            }
+        }
+
         static void SendLoginBarrage(Client c)
         {
             SendChannelList(c);
-            SendUserListUpdates(c, c.Value.Channel);
-
-            string MOTD = GetMOTD();
-
-            if (!string.IsNullOrEmpty(MOTD))
-            {
-                byte[] data = Packer.Serialize((byte)ServerPacket.MOTD, MOTD);
-                c.Send(data);
-            }
-        }
-
-        static void GetBanList()
-        {
-            BanList.Clear();
-            
-            BanList.AddRange(UserDT.Rows
-                .Cast<DataRow>()
-                .ToLookup
-                (x => x.ItemArray[2].ToString() == "-1", x => x.ItemArray[0].ToString().ToLower())
-                [true].ToArray());
-        }
-
-        static void BanUser(string name)
-        {
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "UPDATE users SET level='-1' WHERE username=@user;";
-            q.Parameters.AddWithValue("@user", name);
-
-            r = q.ExecuteReader();
-            bool success = (r.RecordsAffected != 0);
-            r.Close();
-            r.Dispose();
-            if (success) { Console.WriteLine(name + " has been dealt with."); } else { Console.WriteLine("Problem has occurred, cannot ban user"); }
-            GetQuery("SELECT * FROM users", 0);
-        }
-
-        static void UnbanUser(string name)
-        {
-            //Leaving update queries this way until tomorrow. So tired.
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "UPDATE users SET level='3' WHERE username=@user;";
-            q.Parameters.AddWithValue("@user", name);
-
-            r = q.ExecuteReader();
-            bool success = (r.RecordsAffected != 0);
-            r.Close();
-            r.Dispose();
-            if (success) { Console.WriteLine(name + " has been unbanned."); } else { Console.WriteLine("Problem has occurred, cannot unban user"); }
-            GetQuery("SELECT * FROM users", 0);
-        }
-
-        static void SetUserLevel(string name, string level)
-        {
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = string.Format("UPDATE users SET level='{0}' WHERE username=@user;", level);
-            q.Parameters.AddWithValue("@user", name);
-
-            r = q.ExecuteReader();
-            bool success = (r.RecordsAffected != 0);
-            r.Close();
-            r.Dispose();
-            if (success) { Console.WriteLine(name + " has been set to: " + level); } else { Console.WriteLine("Problem has occurred, cannot set user's level"); }
-            GetQuery("SELECT * FROM users", 0);
-        }
-
-        static bool GetUserLevel(string name)
-        {
-            try
-            {
-                GetQuery("SELECT * FROM users", 0);
-                return UserDT.Rows.Cast<DataRow>().ToList().Any(x => x.ItemArray[0].ToString().ToLower() == name.ToLower() && ((int)x.ItemArray[2] == 0));
-            }
-            catch { /* Weird error here. */}
-            return false;
+            SendUserListUpdates(c);
         }
 
         static string GetMOTD()
         {
             string motd = string.Empty;
-            GetQuery("SELECT * FROM settings;", 1);
-            SettingsDT.Rows.Cast<DataRow>().ToList().ForEach(x => motd = x.ItemArray[0].ToString());
+
+            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+            q.CommandText = "SELECT motd FROM settings;";
+
+            MySqlDataReader r = q.ExecuteReader();
+            bool available = r.Read();
+            if (available)
+                motd = r.GetString("motd");
+            r.Close();
+
+           
+
             return motd;
         }
 
-        static void SendUserListUpdates(Client c, byte oldChannel)
+        static void SendUserListUpdates(Client c)
         {
-            try
+            //Let everyone know the life of the party has just arrived.
+            byte[] data1 = Packer.Serialize((byte)ServerPacket.UserJoin, c.Value.UserID, c.Value.Username, c.Value.Rank);
+            BroadcastExclusive(c.Value.UserID, c.Value.Channel, data1);
+
+            //Our guy will probably need to know who he's chatting with, right?
+            List<object> cValues = new List<object>();
+            cValues.Add((byte)ServerPacket.UserList);
+
+            foreach (Client t in Listener.Clients)
             {
-                bool level = GetUserLevel(c.Value.Username);
-                byte[] data1 = Packer.Serialize((byte)ServerPacket.UserJoin, c.Value.UserID, c.Value.Username, level);
-                BroadcastExclusive(c.Value.UserID, c.Value.Channel, data1);
-
-                List<object> cValues = new List<object>();
-                cValues.Add((byte)ServerPacket.UserList);
-
-                //Send updates to old channel.
-                List<object> oldValues = new List<object>();
-                oldValues.Add((byte)ServerPacket.UserList);
-
-
-                //LINQ FTW!
-                ILookup<bool, object[]> lookup = Listener
-                    .Clients
-                    .ToLookup(x => x.Value.Authenticated && x.Value.Channel == c.Value.Channel, x => new object[] {x.Value.UserID, x.Value.Username, GetUserLevel(x.Value.Username)});
-
-                lookup[true].ToList().ForEach(x => cValues.AddRange(x));
-                lookup[false].ToList().ForEach(x => oldValues.AddRange(x));
-
-
-                byte[] data2 = Packer.Serialize(cValues.ToArray());
-                c.Send(data2);
-                if (oldValues.Count > 1)
+                if (t.Value.Authenticated && t.Value.Channel == c.Value.Channel)
                 {
-                    byte[] data3 = Packer.Serialize(oldValues.ToArray());
-                    Broadcast(oldChannel, data3);
+                    cValues.AddRange(new object[] { t.Value.UserID, t.Value.Username, t.Value.Rank, t.Value.Idle });
                 }
             }
-            catch
+
+            byte[] data2 = Packer.Serialize(cValues.ToArray());
+            c.Send(data2);
+        }
+
+        static void FullUserListUpdate()
+        {
+            for (int i = 0; i < Channels.Length; i++)
             {
-                //Weird error here, yet to figure out what's causing it.
+                List<object> Values = new List<object>();
+                Values.Add((byte)ServerPacket.UserList);
+
+                //It would make more sense to loop through the connections only once and build up a few arrays to send out at the end.
+                foreach (Client c in Listener.Clients)
+                {
+                    if (c.Value.Authenticated && c.Value.Channel == i)
+                    {
+                        Values.AddRange(new object[] { c.Value.UserID, c.Value.Username, c.Value.Rank, c.Value.Idle });
+                    }
+                }
+
+                byte[] data = Packer.Serialize(Values.ToArray());
+                Broadcast((byte)i, data);
             }
         }
 
@@ -439,7 +542,107 @@ namespace Auxilium_Server
             c.Send(data);
         }
 
-        //Administrative commands: kick, ban.
+        static Client ClientFromUsername(string name)
+        {
+            foreach (Client c in Listener.Clients)
+            {
+                if (c.Value.Authenticated && c.Value.Username.ToLower() == name.ToLower())
+                    return c;
+            }
+
+            return null;
+        }
+
+        #endregion
+
+        #region " Commands "
+
+        static void KickUser(string name)
+        {
+            Client c = ClientFromUsername(name);
+
+            if (c != null)
+                c.Disconnect();
+
+            Console.WriteLine(name + " has been kicked.");
+        }
+
+        static void BanUser(string name, int ipBan = 0)
+        {
+            try
+            {
+                MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+                q.CommandText = "UPDATE users SET Ban=1 WHERE Username=@Username;";
+                q.Parameters.AddWithValue("@Username", name);
+                q.ExecuteNonQuery();
+
+                Client c = ClientFromUsername(name);
+                if (ipBan == 1)
+                {
+
+                    MySqlCommand q2 = new MySqlCommand(string.Empty, SQL);
+                    q2.CommandText = "INSERT INTO ipbans VALUES (@ip);";
+                    q2.Parameters.AddWithValue("@ip", c.EndPoint.Address.ToString());
+                    q2.ExecuteNonQuery();
+                }
+
+                if (c != null)
+                    c.Disconnect();
+
+                Console.WriteLine(name + " has been dealt with.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+
+        static void UnbanUser(string name)
+        {
+            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+            q.CommandText = "UPDATE users SET Ban=0 WHERE Username=@Username;";
+            q.Parameters.AddWithValue("@Username", name);
+            q.ExecuteNonQuery();
+
+            Console.WriteLine(name + " has been unbanned.");
+        }
+
+        static void MuteUser(string name)
+        {
+            Client c = ClientFromUsername(name);
+
+            if (c != null)
+                c.Value.Mute = true;
+
+            Console.WriteLine(name + " has been muted.");
+        }
+
+        static void UnmuteUser(string name)
+        {
+            Client c = ClientFromUsername(name);
+
+            if (c != null)
+                c.Value.Mute = false;
+
+            Console.WriteLine(name + " has been unmuted.");
+        }
+
+        static void SetUserRank(string name, string rank)
+        {
+            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+            q.CommandText = "UPDATE users SET Rank=@Rank WHERE Username=@Username;";
+            q.Parameters.AddWithValue("@Rank", byte.Parse(rank));
+            q.Parameters.AddWithValue("@Username", name);
+            q.ExecuteNonQuery();
+
+            //Quick and easy.
+            Client c = ClientFromUsername(name);
+            if (c != null)
+                c.Disconnect();
+
+            Console.WriteLine(name + " has been set to: " + rank);
+        }
+
         static void ProcessCommand(string cmd, Client c = null)
         {
             try
@@ -448,80 +651,63 @@ namespace Auxilium_Server
                 switch (commands[0])
                 {
                     case "kick":
-                        ClientFromUsername(commands[1]).Disconnect();
+                        KickUser(commands[1]);
                         break;
                     case "ban":
-                        BanUser(commands[1]);
-                        GetBanList();
-                        ClientFromUsername(commands[1]).Disconnect();//Last in-case the user isn't Connected.
+                        if (commands.Length == 3)
+                        {
+                            BanUser(commands[1], int.Parse(commands[2]));
+                        } else {
+                            BanUser(commands[1]);
+                        }
                         break;
                     case "unban":
                         UnbanUser(commands[1]);
                         break;
                     case "globalmsg":
                         byte[] data = Packer.Serialize((byte)ServerPacket.GlobalMsg, commands[1]);
-                        Broadcast(new UserState().Channel, data);
+                        GlobalBroadcast(data);
                         break;
                     case "list":
-                        GetBanList();
-                        if (c == null)
-                        {
-                            BanList.ForEach(Console.WriteLine);
-                        } else {
-                            string str = string.Join("\n", BanList.ToArray()).Trim();
-                            byte[] bans = Packer.Serialize((byte)ServerPacket.BanList, str);
-                            c.Send(bans);
-                        }
+                        //List<string> BanList = GetBanList();
+                        //if (c == null)
+                        //{
+                        //    BanList.ForEach(Console.WriteLine);
+                        //} else {
+                        //    string str = string.Join("\n", BanList.ToArray()).Trim();
+                        //    byte[] bans = Packer.Serialize((byte)ServerPacket.BanList, str);
+                        //    c.Send(bans);
+                        //}
                         break;
                     case "setlevel":
-                        SetUserLevel(commands[1], commands[2]); //Set admin permissions or whatever.
-                        Client cClient = ClientFromUsername(commands[1]);
-                        SendUserListUpdates(cClient, cClient.Value.Channel);
+                        SetUserRank(commands[1], commands[2]);
                         break;
                     case "mute":
-                        MuteList.Add(commands[1].ToLower());
+                        MuteUser(commands[1]);
                         break;
                     case "unmute":
-                        MuteList.Remove(commands[1].ToLower());
+                        UnmuteUser(commands[1]);
+                        break;
+                    case "updatemotd":
+                        MOTD = GetMOTD();
+                        break;
+                    case "shutdown":
+                        CheckSaveUsers();
+                        Environment.Exit(0);
                         break;
                 }
             }
             catch (Exception ex) { System.Diagnostics.Debug.Print(ex.ToString()); }
         }
 
-        static void DisconnectUser(string name)
-        {
-            Client c = ClientFromUsername(name);
-            if (c != null)
-            {
-                c.Disconnect();
-            }
-        }
-
-        static Client ClientFromUsername(string name)
-        {
-            return Listener.Clients.ToList().Find(m => m.Value.Username == name);
-        }
-
-        static void GetQuery(string query, ushort table)
-        {
-            MySqlDataAdapter adapter = new MySqlDataAdapter(query, SQL);
-            DataSet DS = new DataSet();
-            adapter.Fill(DS);
-            switch (table)
-            {
-                case 0:
-                    UserDT = DS.Tables[0];
-                    break;
-                case 1:
-                    SettingsDT = DS.Tables[0];
-                    break;
-            }
-        }
-
         #endregion
 
         #region " Custom Types "
+
+        public enum SpecialRank : byte
+        {
+            Admin = 41
+        }
 
         enum ServerPacket : byte
         {
@@ -536,7 +722,8 @@ namespace Auxilium_Server
             GlobalMsg,
             BanList,
             PM,
-            KeepAlive
+            KeepAlive,
+            WakeUp
         }
 
         enum ClientPacket : byte

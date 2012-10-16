@@ -22,15 +22,16 @@ namespace Auxilium
         private Client Connection;
         private Pack Packer;
 
-        //We'll use this to cache usernames.
-        private List<User> Users;
-
-        private List<PrivateMessage> PMs = new List<PrivateMessage>();
+        //Store user information such as id, username, and rank here.
+        private Dictionary<ushort, User> Users;
 
         private int UnreadPMs = 0;
+        private List<PrivateMessage> PMs = new List<PrivateMessage>();
 
         private string Username;
         private int Channel;
+
+        private bool AutoLogin;
 
         private bool ShowTimestamps = true;
         private bool SpaceOutMessages = true;
@@ -57,7 +58,7 @@ namespace Auxilium
             Connection.Client_Read += Client_Read;
 
             //Initialize other variables..
-            Users = new List<User>();
+            Users = new Dictionary<ushort, User>();
 
             //Prevents the header from auto-resizing.
             lvUsers.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.None);
@@ -66,16 +67,18 @@ namespace Auxilium
 
         private void frmMain_Shown(object sender, EventArgs e)
         {
-            //Hide users online until user is in chat.
+           //Hide users online until user is in chat.
             tslUsersOnline.Visible = false;
-
             tbUser.Select();
 
             //Because that non-async method below will keep our controls from updating..
             Application.DoEvents();
 
             //Make sure we are using the latest version.
+#if !DEBUG
             CheckForUpdates();
+#endif
+
             //Connect
             ConnectToServer();
             //Keep from disconnecting when idle.
@@ -102,7 +105,7 @@ namespace Auxilium
                     if (Convert.ToBoolean((string)rk.GetValue("Auto")))
                     {
                         cbAuto.Checked = true;
-                        Login();
+                        AutoLogin = true;
                     }
                 }
             }
@@ -122,7 +125,7 @@ namespace Auxilium
                             //Not sure why I was downloading Async before, considering it's already in a new thread...
                             string[] values = wc.DownloadString("http://coleak.com/auxilium/update.txt").Split('~');
                             if (values[0] != Application.ProductVersion)
-                                Auxilium.Update(values[1]);
+                                Functions.Update(values[1]);
                         }
                         catch (Exception ex)
                         {
@@ -149,6 +152,8 @@ namespace Auxilium
                     hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
 
                 tslChatting.Text = "Status: Connected.";
+                if (AutoLogin)
+                    Login();
             }
             else
             {
@@ -163,44 +168,55 @@ namespace Auxilium
 
         private void Client_Read(Client s, byte[] e)
         {
-            object[] values = Packer.Deserialize(e);
-            ServerPacket packet = (ServerPacket)values[0];
-
-            switch (packet)
+            try
             {
-                case ServerPacket.SignIn:
-                    HandleSignInPacket((bool)values[1]);
-                    break;
-                case ServerPacket.Register:
-                    HandleRegisterPacket((bool)values[1]);
-                    break;
-                case ServerPacket.ChannelList:
-                    HandleChannelPacket(values);
-                    break;
-                case ServerPacket.UserList:
-                    HandleUsersPacket(values);
-                    break;
-                case ServerPacket.UserJoin:
-                    HandleUserJoinPacket((ushort)values[1], (string)values[2], (bool)values[3]);
-                    break;
-                case ServerPacket.UserLeave:
-                    HandleUserLeavePacket((ushort)values[1], (string)values[2]);
-                    break;
-                case ServerPacket.MOTD:
-                    HandleMOTDPacket((string)values[1]);
-                    break;
-                case ServerPacket.Chatter:
-                    HandleChatterPacket((ushort)values[1], (string)values[2]);
-                    break;
-                case ServerPacket.GlobalMsg:
-                    HandleGlobalMsgPacket((string)values[1]);
-                    break;
-                case ServerPacket.BanList:
-                    HandleBanListPacket((string)values[1]);
-                    break;
-                case ServerPacket.PM:
-                    HandlePM((string)values[1], (string)values[2], (string)values[3]);
-                    break;
+                object[] values = Packer.Deserialize(e);
+                ServerPacket packet = (ServerPacket)values[0];
+
+                switch (packet)
+                {
+                    case ServerPacket.SignIn:
+                        HandleSignInPacket((bool)values[1]);
+                        break;
+                    case ServerPacket.Register:
+                        HandleRegisterPacket((bool)values[1]);
+                        break;
+                    case ServerPacket.ChannelList:
+                        HandleChannelPacket(values);
+                        break;
+                    case ServerPacket.UserList:
+                        HandleUsersPacket(values);
+                        break;
+                    case ServerPacket.UserJoin:
+                        HandleUserJoinPacket((ushort)values[1], (string)values[2], (byte)values[3]);
+                        break;
+                    case ServerPacket.UserLeave:
+                        HandleUserLeavePacket((ushort)values[1]);
+                        break;
+                    case ServerPacket.MOTD:
+                        HandleMOTDPacket((string)values[1]);
+                        break;
+                    case ServerPacket.Chatter:
+                        HandleChatterPacket((ushort)values[1], (string)values[2]);
+                        break;
+                    case ServerPacket.GlobalMsg:
+                        HandleGlobalMsgPacket((string)values[1]);
+                        break;
+                    case ServerPacket.BanList:
+                        HandleBanListPacket((string)values[1]);
+                        break;
+                    case ServerPacket.PM:
+                        HandlePM((string)values[1], (string)values[2], (string)values[3]);
+                        break;
+                    case ServerPacket.WakeUp:
+                        HandleWakeupPacket((ushort)values[1]);
+                        break;
+                }
+            }
+            catch
+            {
+
+
             }
         }
 
@@ -235,7 +251,7 @@ namespace Auxilium
 
             if (ShowChatNotifications)
             {
-                Auxilium.FlashWindow(this.Handle, true);
+                Functions.FlashWindow(this.Handle, true);
                 niAux.ShowBalloonTip(100, "New Private Message", string.Format("Message From: {0}\nSubject: {1}", user, subject), ToolTipIcon.Info);
 
                 string pt = pMsToolStripMenuItem.Text;
@@ -285,92 +301,69 @@ namespace Auxilium
             ChangeChatState(true);
 
             Users.Clear();
-
-            lvUsers.BeginUpdate();
-            lvUsers.Items.Clear();
-
-            for (int i = 1; i < values.Length; i += 3)
+            for (int i = 1; i < values.Length; i += 4) //Don't forget to change '4' if you add items.
             {
-                //id1, name1, id2, name2, etc.
-                Users.Add(new User((ushort)values[i], (string)values[i + 1], (bool)values[i + 2]));
-
-                int index = ((bool)values[i + 2]) ? 1 : 0;
-
-                ListViewItem li = new ListViewItem((string)values[i + 1])
-                {
-                    Name = values[i].ToString(),
-                    ImageIndex = index
-                };
-
-                //Add to ListView and set key (name).
-                lvUsers.Items.Add(li);
+                Users.Add((ushort)values[i], new User((string)values[i + 1], (byte)values[i + 2], (bool)values[i + 3]));
             }
-
-            lvUsers.EndUpdate();
-            UpdateUserCount();
+            UpdateUserList();
         }
 
-        private void HandleUserJoinPacket(ushort id, string name, bool admin)
+        private void HandleUserJoinPacket(ushort id, string name, byte rank)
         {
-
-            Users.Remove(Users.FirstOrDefault(x => x.ID == id && x.Name == name));
-            lvUsers.Items.Remove(lvUsers.Items.Cast<ListViewItem>().FirstOrDefault(x => x.Text == name));
-
-            Users.Add(new User(id, name, admin));
-            int index = admin ? 1 : 0;
-            ListViewItem li = new ListViewItem(name)
-            {
-                Name = id.ToString(),
-                ImageIndex = index,
-                Tag = admin
-            };
-
-            if (!(name == Username) && ShowJoinLeaveEvents)
-                AppendChat(Color.Green, Color.Green, name, "has joined the chat!");
-
-            lvUsers.Items.Add(li);
-            UpdateUserCount();
-        }
-
-        private void RemoveUserFromList(string name)
-        {
-            lvUsers.Items.Remove(lvUsers.Items.Cast<ListViewItem>().FirstOrDefault(x => x.Text == name));
+            Users.Add(id, new User(name, rank, false));
+            UpdateUserList();
 
             if (ShowJoinLeaveEvents)
-                AppendChat(Color.Red, Color.Red, name, "has left.");
+                AppendChat(Color.Green, Color.Green, name, "has joined the chat!");
         }
 
-        private void HandleUserLeavePacket(ushort id, string name)
+        private void HandleUserLeavePacket(ushort id)
         {
-            Users.Remove(Users.FirstOrDefault(x => x.ID == id && x.Name == name));
+            if (!Users.ContainsKey(id))
+                return; //I guess it could happen?
 
-            RemoveUserFromList(name);
-            UpdateUserCount();
+            User user = Users[id];
+
+            Users.Remove(id);
+            UpdateUserList();
+
+            if (ShowJoinLeaveEvents)
+                AppendChat(Color.Red, Color.Red, user.Name, "has left.");
+        }
+
+        private void HandleWakeupPacket(ushort id)
+        {
+            if (!Users.ContainsKey(id))
+                return; //I guess it could happen?
+
+            Users[id].Idle = false;
+            UpdateUserList();
         }
 
         //TODO: Suport custom server colors?
         private void HandleMOTDPacket(string message)
         {
-            AppendText(Color.Purple, message);
-            AppendLine();
-            AppendLine();
+            //BeginUpdateChat();
+
+            smoothLabel1.Size = new Size(278, 50);
+            smoothLabel1.Text = message;
+
+            //EndUpdateChat();
         }
 
         //TODO: Suport custom server colors?
         private void HandleChatterPacket(ushort id, string message)
         {
-            User user = Users.FirstOrDefault(x => x.ID == id);
+            if (!Users.ContainsKey(id))
+                return; //Return if the user disconnected.
 
-            if (user == null)
-                return;
+            User user = Users[id];
 
-            Color nColor = (user.Admin) ? Color.Red : Color.Blue;
-
-            AppendChat(nColor, Color.Black, user.Name, message);
+            AppendChat(GetRankColor(user.Rank), Color.Black, user.Name, message);
 
             if (ShowChatNotifications && !IsForegroundWindow)
             {
-                Auxilium.FlashWindow(this.Handle, true);
+                Functions.FlashWindow(this.Handle, true);
                 niAux.ShowBalloonTip(100, user.Name, message, ToolTipIcon.Info);
             }
         }
@@ -385,7 +378,7 @@ namespace Auxilium
             AppendChat(Color.Red, Color.Red, "Global Broadcast", message);
             if (ShowChatNotifications && !IsForegroundWindow)
             {
-                Auxilium.FlashWindow(this.Handle, true);
+                Functions.FlashWindow(this.Handle, true);
                 niAux.ShowBalloonTip(100, "Global Broadcast", message, ToolTipIcon.Info);
             }
         }
@@ -403,6 +396,7 @@ namespace Auxilium
         private void HandleBadConnection()
         {
             //We need to default some things in the event of a disconnect.
+            Functions.FlashWindow(this.Handle, true);
             ChangeChatState(true);
             InvalidateChat();
 
@@ -422,6 +416,7 @@ namespace Auxilium
         private void Login()
         {
             //Disable login elements so user doesn't get click happy.
+            AutoLogin = false;
             ChangeSignInState(false);
 
             //Remember Me.
@@ -449,7 +444,7 @@ namespace Auxilium
             string pass = tbPass.Text.Trim().ToLower();
 
             Username = name;
-            pass = Auxilium.SHA1(pass);
+            pass = Functions.SHA1(name + pass);
 
             byte[] data = Packer.Serialize((byte)ClientPacket.SignIn, name, pass);
             Connection.Send(data);
@@ -475,7 +470,7 @@ namespace Auxilium
         {
             get
             {
-                return (this.Handle == Auxilium.GetForegroundWindow());
+                return (this.Handle == Functions.GetForegroundWindow());
             }
         }
         #endregion
@@ -499,9 +494,9 @@ namespace Auxilium
             ChangeRegisterState(false);
 
             string name = textBox2.Text.Trim();
-            string pass = textBox1.Text.Trim().ToLower();
+            string pass = textBox1.Text.Trim();
 
-            pass = Auxilium.SHA1(pass);
+            pass = Functions.SHA1(name + pass);
 
             byte[] data = Packer.Serialize((byte)ClientPacket.Register, name, pass);
             Connection.Send(data);
@@ -658,9 +653,28 @@ namespace Auxilium
             lvUsers.Items.Clear();
         }
 
-        private void UpdateUserCount()
+        bool PreserveSelection;
+        int SelectionIndex, SelectionLength;
+
+        private void BeginUpdateChat()
         {
-            tslUsersOnline.Text = "Users Online: " + lvUsers.Items.Count;
+            SelectionIndex = rtbChat.SelectionStart;
+            SelectionLength = rtbChat.SelectionLength;
+
+            PreserveSelection = (SelectionIndex < rtbChat.TextLength);
+        }
+
+        private void EndUpdateChat()
+        {
+            if (PreserveSelection)
+            {
+                rtbChat.SelectionStart = SelectionIndex;
+                rtbChat.SelectionLength = SelectionLength;
+            }
+            else
+            {
+                rtbChat.SelectionStart = rtbChat.Text.Length;
+            }
         }
 
         private void AppendChat(Color nameColor, Color msgColor, string name, string message)
@@ -670,26 +684,21 @@ namespace Auxilium
             if (ShowTimestamps)
                 sender = string.Format("[{0}] {1}", DateTime.Now.ToShortTimeString(), sender);
 
+            BeginUpdateChat();
+
             AppendText(nameColor, sender);
             AppendText(msgColor, message);
             AppendLine();
 
-            rtbChat.SelectionStart = rtbChat.Text.Length;
-            if (Auxilium.CheckBottom(rtbChat))
-                rtbChat.ScrollToCaret();
-
             if (SpaceOutMessages)
                 AppendLine();
+
+            EndUpdateChat();
         }
 
         private void AppendText(Color c, string text)
         {
-            int selectIndex = rtbChat.SelectionStart;
-            int selectLength = rtbChat.SelectionLength;
-
-            //TODO: Determine this with ScrollBar instead.
-            bool EndOfChat = (selectIndex == rtbChat.TextLength);
-
+            int start = rtbChat.SelectionStart;
             rtbChat.SelectionStart = rtbChat.TextLength;
             rtbChat.SelectionLength = 0;
             rtbChat.SelectionColor = c;
@@ -697,19 +706,6 @@ namespace Auxilium
             rtbChat.AppendText(text);
             rtbChat.SelectionColor = rtbChat.ForeColor;
 
-
-            if (EndOfChat)
-            {
-                //Scroll to bottom of chat.
-                rtbChat.SelectionStart = rtbChat.Text.Length;
-                if (Auxilium.CheckBottom(rtbChat)) rtbChat.ScrollToCaret();
-            }
-            else
-            {
-                //Preserve selection.
-                rtbChat.SelectionStart = selectIndex;
-                rtbChat.SelectionLength = selectLength;
-            }
             if (WriteMessageToFile)
             {
                 //TODO: Write message here.
@@ -776,7 +772,7 @@ namespace Auxilium
         //TODO: Sanitize server side and locally(?)
         private void rtbMessage_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
+            if (!e.Shift && e.KeyCode == Keys.Enter)
             {
                 e.SuppressKeyPress = true;
 
@@ -784,12 +780,12 @@ namespace Auxilium
 
                 if (!string.IsNullOrEmpty(message))
                 {
-                    //Show message locally. May want to wait for verification from server.
-                    AppendChat(Color.ForestGreen, Color.DimGray, Username, message);
-
                     //Send the chat message to the server.
                     byte[] data = Packer.Serialize((byte)ClientPacket.ChatMessage, message);
                     Connection.Send(data);
+
+                    //Show message locally. May want to wait for verification from server.
+                    AppendChat(Color.ForestGreen, Color.DimGray, Username, message);
 
                     rtbMessage.Clear();
                 }
@@ -825,11 +821,48 @@ namespace Auxilium
             catch { }
         }
 
-        private void rtbChat_VScroll(object sender, EventArgs e)
+        #endregion
+
+        private void UpdateUserList()
         {
-            //Honestly not sure if this is needed, I'm just extremely tired.
-            rtbChat.SelectionStart = rtbChat.TextLength;
+            lvUsers.BeginUpdate();
+            lvUsers.Items.Clear();
+
+            foreach (KeyValuePair<ushort, User> pair in Users.OrderBy(pair => pair.Value, new UserComparer()))
+            {
+                ListViewItem li = new ListViewItem(pair.Value.Name)
+                {
+                    Name = pair.Key.ToString(),
+                    ImageIndex = pair.Value.Rank
+                };
+
+                if (pair.Value.Idle)
+                {
+                    li.ForeColor = SystemColors.ControlDark;
+                }
+
+                lvUsers.Items.Add(li);
+            }
+
+            lvUsers.EndUpdate();
+
+            tslUsersOnline.Text = "Users Online: " + lvUsers.Items.Count;
         }
-        #endregion   
+
+        private void copyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            rtbChat.Copy();
+        }
+
+        private Color GetRankColor(byte rank)
+        {
+            switch (rank)
+            {
+                case (byte)SpecialRank.Admin:
+                    return Color.Red;
+                default:
+                    return Color.Blue;
+            }
+        }
     }
 }

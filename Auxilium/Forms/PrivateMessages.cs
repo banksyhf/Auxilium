@@ -155,5 +155,17 @@ namespace Auxilium.Forms
             Message = (string)lvPMs.SelectedItems[0].Tag;
             hiddenTab1.SelectedIndex = 2;
         }
+
+        private void LinkClicked(object sender, LinkClickedEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(e.LinkText);
+            }
+            catch
+            {
+                //Do nothing.
+            }
+        }
     }
 }

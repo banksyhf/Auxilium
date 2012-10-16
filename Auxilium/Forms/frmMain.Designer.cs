@@ -39,13 +39,15 @@
             this.tsmChatNotifications = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmSpaceMessages = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmUserJoinEvents = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem4 = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
             this.writeMessagesToFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.changeFontToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pMsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmSuggestions = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmDonations = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmNews = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmAbout = new System.Windows.Forms.ToolStripMenuItem();
             this.sStatus = new System.Windows.Forms.StatusStrip();
             this.tslChatting = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -55,13 +57,11 @@
             this.ilUsers = new System.Windows.Forms.ImageList(this.components);
             this.cmsClipboard = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.pasteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmDonations = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmAbout = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmNews = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmSuggestions = new System.Windows.Forms.ToolStripMenuItem();
+            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hiddenTab1 = new HiddenTab();
             this.tpLogin = new System.Windows.Forms.TabPage();
+            this.smoothLabel1 = new SmoothLabel();
             this.cbAuto = new System.Windows.Forms.CheckBox();
             this.cbRemember = new System.Windows.Forms.CheckBox();
             this.btnRegister = new System.Windows.Forms.Button();
@@ -91,6 +91,7 @@
             this.sStatus.SuspendLayout();
             this.cmsUsers.SuspendLayout();
             this.cmsClipboard.SuspendLayout();
+            this.contextMenuStrip1.SuspendLayout();
             this.hiddenTab1.SuspendLayout();
             this.tpLogin.SuspendLayout();
             this.tpRegister.SuspendLayout();
@@ -152,7 +153,6 @@
             this.tsmChatNotifications,
             this.tsmSpaceMessages,
             this.tsmUserJoinEvents,
-            this.toolStripMenuItem2,
             this.writeMessagesToFileToolStripMenuItem,
             this.toolStripSeparator1,
             this.changeFontToolStripMenuItem});
@@ -199,32 +199,6 @@
             this.tsmUserJoinEvents.Text = "Show User Join/Leave Events";
             this.tsmUserJoinEvents.CheckedChanged += new System.EventHandler(this.tsmUserJoinEvents_CheckedChanged);
             // 
-            // toolStripMenuItem2
-            // 
-            this.toolStripMenuItem2.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripMenuItem4,
-            this.toolStripMenuItem3});
-            this.toolStripMenuItem2.Enabled = false;
-            this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(218, 22);
-            this.toolStripMenuItem2.Text = "User Sorting";
-            // 
-            // toolStripMenuItem4
-            // 
-            this.toolStripMenuItem4.Checked = true;
-            this.toolStripMenuItem4.CheckOnClick = true;
-            this.toolStripMenuItem4.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.toolStripMenuItem4.Name = "toolStripMenuItem4";
-            this.toolStripMenuItem4.Size = new System.Drawing.Size(103, 22);
-            this.toolStripMenuItem4.Text = "Name";
-            // 
-            // toolStripMenuItem3
-            // 
-            this.toolStripMenuItem3.CheckOnClick = true;
-            this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            this.toolStripMenuItem3.Size = new System.Drawing.Size(103, 22);
-            this.toolStripMenuItem3.Text = "Status";
-            // 
             // writeMessagesToFileToolStripMenuItem
             // 
             this.writeMessagesToFileToolStripMenuItem.CheckOnClick = true;
@@ -253,6 +227,50 @@
             this.pMsToolStripMenuItem.Size = new System.Drawing.Size(55, 22);
             this.pMsToolStripMenuItem.Text = "PMs";
             this.pMsToolStripMenuItem.Click += new System.EventHandler(this.pMsToolStripMenuItem_Click);
+            // 
+            // helpToolStripMenuItem
+            // 
+            this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsmSuggestions,
+            this.tsmDonations,
+            this.tsmNews,
+            this.tsmAbout});
+            this.helpToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("helpToolStripMenuItem.Image")));
+            this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(56, 22);
+            this.helpToolStripMenuItem.Text = "Help";
+            // 
+            // tsmSuggestions
+            // 
+            this.tsmSuggestions.Image = ((System.Drawing.Image)(resources.GetObject("tsmSuggestions.Image")));
+            this.tsmSuggestions.Name = "tsmSuggestions";
+            this.tsmSuggestions.Size = new System.Drawing.Size(183, 22);
+            this.tsmSuggestions.Text = "Suggestions";
+            this.tsmSuggestions.Click += new System.EventHandler(this.tsmSuggestions_Click);
+            // 
+            // tsmDonations
+            // 
+            this.tsmDonations.Image = ((System.Drawing.Image)(resources.GetObject("tsmDonations.Image")));
+            this.tsmDonations.Name = "tsmDonations";
+            this.tsmDonations.Size = new System.Drawing.Size(183, 22);
+            this.tsmDonations.Text = "Donate (Server Costs)";
+            this.tsmDonations.Click += new System.EventHandler(this.tsmDonations_Click);
+            // 
+            // tsmNews
+            // 
+            this.tsmNews.Enabled = false;
+            this.tsmNews.Image = ((System.Drawing.Image)(resources.GetObject("tsmNews.Image")));
+            this.tsmNews.Name = "tsmNews";
+            this.tsmNews.Size = new System.Drawing.Size(183, 22);
+            this.tsmNews.Text = "News";
+            // 
+            // tsmAbout
+            // 
+            this.tsmAbout.Enabled = false;
+            this.tsmAbout.Image = ((System.Drawing.Image)(resources.GetObject("tsmAbout.Image")));
+            this.tsmAbout.Name = "tsmAbout";
+            this.tsmAbout.Size = new System.Drawing.Size(183, 22);
+            this.tsmAbout.Text = "About";
             // 
             // sStatus
             // 
@@ -309,8 +327,48 @@
             // 
             this.ilUsers.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("ilUsers.ImageStream")));
             this.ilUsers.TransparentColor = System.Drawing.Color.Transparent;
-            this.ilUsers.Images.SetKeyName(0, "user.ico");
-            this.ilUsers.Images.SetKeyName(1, "user_red.ico");
+            this.ilUsers.Images.SetKeyName(0, "1.png");
+            this.ilUsers.Images.SetKeyName(1, "2.png");
+            this.ilUsers.Images.SetKeyName(2, "3.png");
+            this.ilUsers.Images.SetKeyName(3, "4.png");
+            this.ilUsers.Images.SetKeyName(4, "5.png");
+            this.ilUsers.Images.SetKeyName(5, "6.png");
+            this.ilUsers.Images.SetKeyName(6, "7.png");
+            this.ilUsers.Images.SetKeyName(7, "8.png");
+            this.ilUsers.Images.SetKeyName(8, "9.png");
+            this.ilUsers.Images.SetKeyName(9, "10.png");
+            this.ilUsers.Images.SetKeyName(10, "11.png");
+            this.ilUsers.Images.SetKeyName(11, "12.png");
+            this.ilUsers.Images.SetKeyName(12, "13.png");
+            this.ilUsers.Images.SetKeyName(13, "14.png");
+            this.ilUsers.Images.SetKeyName(14, "15.png");
+            this.ilUsers.Images.SetKeyName(15, "16.png");
+            this.ilUsers.Images.SetKeyName(16, "17.png");
+            this.ilUsers.Images.SetKeyName(17, "18.png");
+            this.ilUsers.Images.SetKeyName(18, "19.png");
+            this.ilUsers.Images.SetKeyName(19, "20.png");
+            this.ilUsers.Images.SetKeyName(20, "21.png");
+            this.ilUsers.Images.SetKeyName(21, "22.png");
+            this.ilUsers.Images.SetKeyName(22, "23.png");
+            this.ilUsers.Images.SetKeyName(23, "24.png");
+            this.ilUsers.Images.SetKeyName(24, "25.png");
+            this.ilUsers.Images.SetKeyName(25, "26.png");
+            this.ilUsers.Images.SetKeyName(26, "27.png");
+            this.ilUsers.Images.SetKeyName(27, "28.png");
+            this.ilUsers.Images.SetKeyName(28, "29.png");
+            this.ilUsers.Images.SetKeyName(29, "30.png");
+            this.ilUsers.Images.SetKeyName(30, "31.png");
+            this.ilUsers.Images.SetKeyName(31, "32.png");
+            this.ilUsers.Images.SetKeyName(32, "33.png");
+            this.ilUsers.Images.SetKeyName(33, "34.png");
+            this.ilUsers.Images.SetKeyName(34, "35.png");
+            this.ilUsers.Images.SetKeyName(35, "36.png");
+            this.ilUsers.Images.SetKeyName(36, "37.png");
+            this.ilUsers.Images.SetKeyName(37, "38.png");
+            this.ilUsers.Images.SetKeyName(38, "39.png");
+            this.ilUsers.Images.SetKeyName(39, "40.png");
+            this.ilUsers.Images.SetKeyName(40, "41.png");
+            this.ilUsers.Images.SetKeyName(41, "42.png");
             // 
             // cmsClipboard
             // 
@@ -327,49 +385,20 @@
             this.pasteToolStripMenuItem.Text = "Paste";
             this.pasteToolStripMenuItem.Click += new System.EventHandler(this.pasteToolStripMenuItem_Click);
             // 
-            // helpToolStripMenuItem
+            // contextMenuStrip1
             // 
-            this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsmSuggestions,
-            this.tsmDonations,
-            this.tsmNews,
-            this.tsmAbout});
-            this.helpToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("helpToolStripMenuItem.Image")));
-            this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(56, 22);
-            this.helpToolStripMenuItem.Text = "Help";
+            this.contextMenuStrip1.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.copyToolStripMenuItem});
+            this.contextMenuStrip1.Name = "contextMenuStrip1";
+            this.contextMenuStrip1.Size = new System.Drawing.Size(97, 26);
             // 
-            // tsmDonations
+            // copyToolStripMenuItem
             // 
-            this.tsmDonations.Image = ((System.Drawing.Image)(resources.GetObject("tsmDonations.Image")));
-            this.tsmDonations.Name = "tsmDonations";
-            this.tsmDonations.Size = new System.Drawing.Size(183, 22);
-            this.tsmDonations.Text = "Donate (Server Costs)";
-            this.tsmDonations.Click += new System.EventHandler(this.tsmDonations_Click);
-            // 
-            // tsmAbout
-            // 
-            this.tsmAbout.Enabled = false;
-            this.tsmAbout.Image = ((System.Drawing.Image)(resources.GetObject("tsmAbout.Image")));
-            this.tsmAbout.Name = "tsmAbout";
-            this.tsmAbout.Size = new System.Drawing.Size(183, 22);
-            this.tsmAbout.Text = "About";
-            // 
-            // tsmNews
-            // 
-            this.tsmNews.Enabled = false;
-            this.tsmNews.Image = ((System.Drawing.Image)(resources.GetObject("tsmNews.Image")));
-            this.tsmNews.Name = "tsmNews";
-            this.tsmNews.Size = new System.Drawing.Size(183, 22);
-            this.tsmNews.Text = "News";
-            // 
-            // tsmSuggestions
-            // 
-            this.tsmSuggestions.Image = ((System.Drawing.Image)(resources.GetObject("tsmSuggestions.Image")));
-            this.tsmSuggestions.Name = "tsmSuggestions";
-            this.tsmSuggestions.Size = new System.Drawing.Size(183, 22);
-            this.tsmSuggestions.Text = "Suggestions";
-            this.tsmSuggestions.Click += new System.EventHandler(this.tsmSuggestions_Click);
+            this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
+            this.copyToolStripMenuItem.Size = new System.Drawing.Size(96, 22);
+            this.copyToolStripMenuItem.Text = "Copy";
+            this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
             // 
             // hiddenTab1
             // 
@@ -380,7 +409,7 @@
             this.hiddenTab1.Controls.Add(this.tpRegister);
             this.hiddenTab1.Controls.Add(this.tpChat);
             this.hiddenTab1.Controls.Add(this.tpReconnect);
-            this.hiddenTab1.DesignerIndex = 0;
+            this.hiddenTab1.DesignerIndex = 2;
             this.hiddenTab1.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.hiddenTab1.Location = new System.Drawing.Point(9, 32);
             this.hiddenTab1.Margin = new System.Windows.Forms.Padding(0, 8, 0, 8);
@@ -392,6 +421,7 @@
             // tpLogin
             // 
             this.tpLogin.BackColor = System.Drawing.SystemColors.Control;
+            this.tpLogin.Controls.Add(this.smoothLabel1);
             this.tpLogin.Controls.Add(this.cbAuto);
             this.tpLogin.Controls.Add(this.cbRemember);
             this.tpLogin.Controls.Add(this.btnRegister);
@@ -406,6 +436,17 @@
             this.tpLogin.Size = new System.Drawing.Size(590, 290);
             this.tpLogin.TabIndex = 0;
             this.tpLogin.Text = "tabPage1";
+            // 
+            // smoothLabel1
+            // 
+            this.smoothLabel1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(250)))), ((int)(((byte)(200)))));
+            this.smoothLabel1.BorderColor = System.Drawing.Color.FromArgb(((int)(((byte)(200)))), ((int)(((byte)(200)))), ((int)(((byte)(160)))));
+            this.smoothLabel1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(150)))), ((int)(((byte)(150)))), ((int)(((byte)(120)))));
+            this.smoothLabel1.Location = new System.Drawing.Point(166, 21);
+            this.smoothLabel1.Name = "smoothLabel1";
+            this.smoothLabel1.Size = new System.Drawing.Size(0, 0);
+            this.smoothLabel1.TabIndex = 14;
+            this.smoothLabel1.Text = "MOTD";
             // 
             // cbAuto
             // 
@@ -632,33 +673,36 @@
             this.splitContainer1.Panel2.Controls.Add(this.rtbMessage);
             this.splitContainer1.Panel2MinSize = 20;
             this.splitContainer1.Size = new System.Drawing.Size(433, 290);
-            this.splitContainer1.SplitterDistance = 265;
+            this.splitContainer1.SplitterDistance = 245;
             this.splitContainer1.TabIndex = 20;
             // 
             // rtbChat
             // 
+            this.rtbChat.AcceptsTab = true;
             this.rtbChat.BackColor = System.Drawing.Color.White;
+            this.rtbChat.ContextMenuStrip = this.contextMenuStrip1;
             this.rtbChat.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rtbChat.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rtbChat.HideSelection = false;
             this.rtbChat.Location = new System.Drawing.Point(0, 0);
             this.rtbChat.Name = "rtbChat";
             this.rtbChat.ReadOnly = true;
             this.rtbChat.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.ForcedVertical;
-            this.rtbChat.Size = new System.Drawing.Size(433, 265);
-            this.rtbChat.TabIndex = 7;
+            this.rtbChat.Size = new System.Drawing.Size(433, 245);
+            this.rtbChat.TabIndex = 8;
             this.rtbChat.Text = "";
             this.rtbChat.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.rtbChat_LinkClicked);
-            this.rtbChat.VScroll += new System.EventHandler(this.rtbChat_VScroll);
             // 
             // rtbMessage
             // 
             this.rtbMessage.ContextMenuStrip = this.cmsClipboard;
             this.rtbMessage.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rtbMessage.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rtbMessage.HideSelection = false;
             this.rtbMessage.Location = new System.Drawing.Point(0, 0);
             this.rtbMessage.MaxLength = 1024;
             this.rtbMessage.Name = "rtbMessage";
-            this.rtbMessage.Size = new System.Drawing.Size(433, 21);
+            this.rtbMessage.Size = new System.Drawing.Size(433, 41);
             this.rtbMessage.TabIndex = 12;
             this.rtbMessage.Text = "";
             this.rtbMessage.KeyDown += new System.Windows.Forms.KeyEventHandler(this.rtbMessage_KeyDown);
@@ -743,6 +787,7 @@
             this.sStatus.PerformLayout();
             this.cmsUsers.ResumeLayout(false);
             this.cmsClipboard.ResumeLayout(false);
+            this.contextMenuStrip1.ResumeLayout(false);
             this.hiddenTab1.ResumeLayout(false);
             this.tpLogin.ResumeLayout(false);
             this.tpLogin.PerformLayout();
@@ -763,7 +808,6 @@
 
         #endregion
 
-        private System.Windows.Forms.RichTextBox rtbChat;
         private System.Windows.Forms.RichTextBox rtbMessage;
         private System.Windows.Forms.MenuStrip msMenu;
         private System.Windows.Forms.StatusStrip sStatus;
@@ -811,15 +855,16 @@
         private System.Windows.Forms.ContextMenuStrip cmsClipboard;
         private System.Windows.Forms.ToolStripMenuItem pasteToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tsmTimestamps;
-        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
-        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem4;
-        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem3;
         private System.Windows.Forms.CheckBox cbAuto;
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tsmDonations;
         private System.Windows.Forms.ToolStripMenuItem tsmNews;
         private System.Windows.Forms.ToolStripMenuItem tsmSuggestions;
         private System.Windows.Forms.ToolStripMenuItem tsmAbout;
+        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
+        private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
+        private SmoothLabel smoothLabel1;
+        private System.Windows.Forms.RichTextBox rtbChat;
     }
 }
 

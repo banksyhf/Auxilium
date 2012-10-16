@@ -106,20 +106,20 @@
             this.readMessageToolStripMenuItem,
             this.replyToolStripMenuItem});
             this.cmsPM.Name = "cmsPM";
-            this.cmsPM.Size = new System.Drawing.Size(147, 48);
+            this.cmsPM.Size = new System.Drawing.Size(150, 48);
             this.cmsPM.Opening += new System.ComponentModel.CancelEventHandler(this.cmsPM_Opening);
             // 
             // readMessageToolStripMenuItem
             // 
             this.readMessageToolStripMenuItem.Name = "readMessageToolStripMenuItem";
-            this.readMessageToolStripMenuItem.Size = new System.Drawing.Size(146, 22);
+            this.readMessageToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
             this.readMessageToolStripMenuItem.Text = "Read Message";
             this.readMessageToolStripMenuItem.Click += new System.EventHandler(this.readMessageToolStripMenuItem_Click);
             // 
             // replyToolStripMenuItem
             // 
             this.replyToolStripMenuItem.Name = "replyToolStripMenuItem";
-            this.replyToolStripMenuItem.Size = new System.Drawing.Size(146, 22);
+            this.replyToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
             this.replyToolStripMenuItem.Text = "Reply";
             this.replyToolStripMenuItem.Click += new System.EventHandler(this.replyToolStripMenuItem_Click);
             // 
@@ -129,7 +129,7 @@
             this.hiddenTab1.Controls.Add(this.tpReply);
             this.hiddenTab1.Controls.Add(this.tpRead);
             this.hiddenTab1.Controls.Add(this.tabPage1);
-            this.hiddenTab1.DesignerIndex = 1;
+            this.hiddenTab1.DesignerIndex = 0;
             this.hiddenTab1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.hiddenTab1.Location = new System.Drawing.Point(0, 0);
             this.hiddenTab1.Name = "hiddenTab1";
@@ -176,6 +176,7 @@
             this.rtbReply.Size = new System.Drawing.Size(444, 67);
             this.rtbReply.TabIndex = 17;
             this.rtbReply.Text = "";
+            this.rtbReply.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.LinkClicked);
             // 
             // btnReplyBack
             // 
@@ -212,6 +213,7 @@
             // 
             this.tbReplyFrom.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.tbReplyFrom.BackColor = System.Drawing.Color.White;
             this.tbReplyFrom.Location = new System.Drawing.Point(98, 12);
             this.tbReplyFrom.Name = "tbReplyFrom";
             this.tbReplyFrom.ReadOnly = true;
@@ -233,6 +235,7 @@
             this.rtbReplyMessage.Size = new System.Drawing.Size(444, 108);
             this.rtbReplyMessage.TabIndex = 11;
             this.rtbReplyMessage.Text = "";
+            this.rtbReplyMessage.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.LinkClicked);
             // 
             // tpRead
             // 
@@ -304,6 +307,7 @@
             this.rtbReadMessage.Size = new System.Drawing.Size(444, 193);
             this.rtbReadMessage.TabIndex = 8;
             this.rtbReadMessage.Text = "";
+            this.rtbReadMessage.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.LinkClicked);
             // 
             // tabPage1
             // 
@@ -351,6 +355,7 @@
             this.rtbSendMessage.Size = new System.Drawing.Size(444, 217);
             this.rtbSendMessage.TabIndex = 0;
             this.rtbSendMessage.Text = "";
+            this.rtbSendMessage.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.LinkClicked);
             // 
             // PrivateMessages
             // 

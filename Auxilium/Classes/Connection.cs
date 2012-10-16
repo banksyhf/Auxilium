@@ -252,23 +252,27 @@ namespace Auxilium.Classes
 
         private void HandleMessage(byte[] data)
         {
-            byte[] T = null;
-            ushort Index = 0;
-            ushort Length = 0;
-
-            while (Index < data.Length)
+            try
             {
-                Length = BitConverter.ToUInt16(data, Index);
-                if (Index + Length + 2 > data.Length)
-                    return;
+                byte[] T = null;
+                ushort Index = 0;
+                ushort Length = 0;
 
-                T = new byte[Length];
-                Buffer.BlockCopy(data, Index + 2, T, 0, Length);
+                while (Index < data.Length)
+                {
+                    Length = BitConverter.ToUInt16(data, Index);
+                    if (Index + Length + 2 > data.Length)
+                        return;
 
-                Index += (ushort)(Length + 2);
+                    T = new byte[Length];
+                    Buffer.BlockCopy(data, Index + 2, T, 0, Length);
 
-                O.Post(x => OnClient_Read((byte[])x), T);
+                    Index += (ushort)(Length + 2);
+
+                    O.Post(x => OnClient_Read((byte[])x), T);
+                }
             }
+            catch { }
         }
     }
 }

@@ -11,13 +11,17 @@ using System.Drawing;
 
 namespace Auxilium
 {
-    static class Auxilium
+    static class Functions
     {
         public static string SHA1(string input)
         {
             SHA1CryptoServiceProvider sha = new SHA1CryptoServiceProvider();
-            byte[] inputBytes = Encoding.UTF8.GetBytes(input);
+
+            string salt = input[input[0] % input.Length] + "B4TH5ALTS" + input.Length;
+
+            byte[] inputBytes = Encoding.UTF8.GetBytes(input + salt);
             byte[] hashedBytes = sha.ComputeHash(inputBytes);
+
             return BitConverter.ToString(hashedBytes).Replace("-", "");
         }
 
@@ -26,80 +30,101 @@ namespace Auxilium
             try
             {
                 MessageBox.Show("Updating!", "Auxilium", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                new System.Threading.Thread(() =>
+                WebClient webClient = new WebClient();
+                if ((szURL.StartsWith("http://") || szURL.StartsWith("https://")))
+                {
+                    string szDownloadPath = Application.StartupPath + "\\";
+                    string szRandomFileName = szURL.Split('/')[szURL.Split('/').Length - 1];
+                    webClient.DownloadFile(szURL, szDownloadPath + szRandomFileName);
+                    if (File.Exists(szDownloadPath + szRandomFileName))
                     {
-                        WebClient webClient = new WebClient();
-                        if ((szURL.StartsWith("http://") || szURL.StartsWith("https://")))
+                        Process P = new Process();
+                        P.StartInfo.FileName = szDownloadPath + szRandomFileName;
+                        P.StartInfo.UseShellExecute = true;
+                        P.Start();
+                        if (Process.GetProcessById(P.Id) != null)
                         {
-                            string szDownloadPath = Application.StartupPath + "\\";
-                            string szRandomFileName = szURL.Split('/')[szURL.Split('/').Length - 1];
-                            webClient.DownloadFile(szURL, szDownloadPath + szRandomFileName);
-                            if (File.Exists(szDownloadPath + szRandomFileName))
-                            {
-                                Process P = new Process();
-                                P.StartInfo.FileName = szDownloadPath + szRandomFileName;
-                                P.StartInfo.UseShellExecute = true;
-                                P.Start();
-                                if (Process.GetProcessById(P.Id) != null)
-                                {
-                                    ProcessStartInfo Info = new ProcessStartInfo();
-                                    Info.Arguments = "/C ping 1.1.1.1 -n 1 -w 1000 > Nul & Del \"" + Application.ExecutablePath + "\"";
-                                    Info.CreateNoWindow = true;
-                                    Info.WindowStyle = ProcessWindowStyle.Hidden;
-                                    Info.FileName = "cmd.exe";
-                                    Process.Start(Info);
-                                    Environment.Exit(0);
-                                }
-                            }
+                            ProcessStartInfo Info = new ProcessStartInfo();
+                            Info.Arguments = "/C ping 1.1.1.1 -n 1 -w 1000 > Nul & Del \"" + Application.ExecutablePath + "\"";
+                            Info.CreateNoWindow = true;
+                            Info.WindowStyle = ProcessWindowStyle.Hidden;
+                            Info.FileName = "cmd.exe";
+                            Process.Start(Info);
+                            Environment.Exit(0);
                         }
-                    }).Start();
+                    }
+                }
             }
             catch { }
         }
 
-        internal static bool CheckBottom(RichTextBox rtb)
-        {
-            Scrollbarinfo info = new Scrollbarinfo();
-            info.CbSize = Marshal.SizeOf(info);
-            int res = GetScrollBarInfo(rtb.Handle, ObjidVscroll, ref info);
-            return info.XyThumbBottom > (info.RcScrollBar.Bottom - info.RcScrollBar.Top - (info.DxyLineButton * 2));
-        }
+        //internal static bool CheckBottom(RichTextBox rtb)
+        //{
+        //    Scrollbarinfo info = new Scrollbarinfo();
+        //    info.CbSize = Marshal.SizeOf(info);
+        //    int res = GetScrollBarInfo(rtb.Handle, ObjidVscroll, ref info);
+        //    return info.XyThumbBottom > (info.RcScrollBar.Bottom - info.RcScrollBar.Top - (info.DxyLineButton * 2));
+        //}
 
         #region APIs/Types
 
-        [DllImport("user32.dll")]
-        public static extern int SetForegroundWindow(IntPtr handle);
-
-        [DllImport("user32.dll")]
-        public static extern bool FlashWindow(IntPtr handle, bool invert);
-
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll", EntryPoint = "GetForegroundWindow")]
         public static extern IntPtr GetForegroundWindow();
 
-        [DllImport("user32.dll", SetLastError = true, EntryPoint = "GetScrollBarInfo")]
-        private static extern int GetScrollBarInfo(IntPtr hWnd, uint idObject, ref Scrollbarinfo psbi);
+        [DllImport("user32.dll", EntryPoint="SetForegroundWindow")]
+        public static extern int SetForegroundWindow(IntPtr handle);
 
-        public const uint ObjidVscroll = 0xFFFFFFFB;
+        [DllImport("user32.dll", EntryPoint = "FlashWindow")]
+        public static extern bool FlashWindow(IntPtr handle, bool invert);
 
-        public struct Scrollbarinfo
+        //[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+        //public static extern int GetWindowLong(IntPtr handle, int index);
+
+        [DllImport("user32.dll", EntryPoint = "GetScrollInfo")]
+        private static extern bool GetScrollInfo(IntPtr handle, int bar, ref SCROLLINFO info);
+
+        //[DllImport("user32.dll", EntryPoint = "SetScrollInfo")]
+        //private static extern int SetScrollInfo(IntPtr handle, int bar, ref SCROLLINFO info, bool redraw);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SCROLLINFO
         {
-            public int CbSize;
-            public Rect RcScrollBar;
-            public int DxyLineButton;
-            public int XyThumbTop;
-            public int XyThumbBottom;
-            public int Reserved;
-            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
-            public int[] Rgstate;
+            public uint size;
+            public uint mask;
+            public int min;
+            public int max;
+            public int page;
+            public int position;
+            public int trackPosition;
         }
 
-        public struct Rect
+        public static SCROLLINFO VScroll;
+        public static bool GetScroll(IntPtr handle)
         {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
+            VScroll = new SCROLLINFO();
+            VScroll.size = (uint)Marshal.SizeOf(VScroll);
+            VScroll.mask = 7;
+
+            return GetScrollInfo(handle, 1, ref VScroll);
         }
+
+        //public static void SetScroll(IntPtr handle, int position)
+        //{
+        //    if (GetScroll(handle))
+        //    {
+        //        VScroll.mask = 4;
+        //        VScroll.position = position;
+
+        //        SetScrollInfo(handle, 1, ref VScroll, true);
+        //    }
+        //}
+
+        //public static bool VScrollVisible(IntPtr handle)
+        //{
+        //    int value = GetWindowLong(handle, -16);
+        //    return (value & 0x00200000) != 0;
+        //}
+
         #endregion
     }
     public enum MenuScreen
@@ -124,7 +149,8 @@ namespace Auxilium
         GlobalMsg,
         BanList,
         PM,
-        KeepAlive
+        KeepAlive,
+        WakeUp
     }
 
     public enum ClientPacket : byte
@@ -137,16 +163,22 @@ namespace Auxilium
         KeepAlive
     }
 
+    public enum SpecialRank : byte
+    {
+        Admin = 41
+    }
+
     public class User
     {
         public string Name;
-        public ushort ID;
-        public bool Admin;
-        public User(ushort id, string name, bool admin)
+        public byte Rank;
+        public bool Idle;
+
+        public User(string name, byte rank, bool idle)
         {
             Name = name;
-            ID = id;
-            Admin = admin;
+            Rank = rank;
+            Idle = idle;
         }
     }
 }

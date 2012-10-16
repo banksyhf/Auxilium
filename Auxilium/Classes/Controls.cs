@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.Drawing;
 
 public class HiddenTab : TabControl
 {
@@ -45,6 +46,70 @@ public class ListView : System.Windows.Forms.ListView
         this.View = System.Windows.Forms.View.Details;
         this.FullRowSelect = true;
     }
+}
+class SmoothLabel : Control
+{
+
+	private Bitmap TextBitmap;
+
+	private Graphics TextGraphics;
+	public SmoothLabel()
+	{
+		SetStyle((ControlStyles)139270, true);
+
+		TextBitmap = new Bitmap(1, 1);
+		TextGraphics = Graphics.FromImage(TextBitmap);
+
+		BackColor = Color.FromArgb(250, 250, 200);
+		ForeColor = Color.FromArgb(150, 150, 120);
+		P1 = new Pen(Color.FromArgb(200, 200, 160));
+	}
+
+	private Pen P1 = Pens.Black;
+	public Color BorderColor {
+		get { return P1.Color; }
+		set {
+			P1 = new Pen(value);
+			Invalidate();
+		}
+	}
+
+	private SolidBrush B1;
+	public override Color ForeColor {
+		get { return base.ForeColor; }
+		set {
+			base.ForeColor = value;
+			B1 = new SolidBrush(value);
+			Invalidate();
+		}
+	}
+
+	private Size TextSize;
+	public override string Text {
+		get { return base.Text; }
+		set {
+			base.Text = value;
+			TextSize = TextGraphics.MeasureString(base.Text, base.Font).ToSize();
+			Invalidate();
+		}
+	}
+
+	public override Font Font {
+		get { return base.Font; }
+		set {
+			base.Font = value;
+			TextSize = TextGraphics.MeasureString(base.Text, base.Font).ToSize();
+			Invalidate();
+		}
+	}
+
+	protected override void OnPaint(System.Windows.Forms.PaintEventArgs e)
+	{
+		e.Graphics.Clear(BackColor);
+		e.Graphics.DrawString(Text, Font, B1, Width / 2 - TextSize.Width / 2, Height / 2 - TextSize.Height / 2);
+		e.Graphics.DrawRectangle(P1, 0, 0, Width - 1, Height - 1);
+	}
+
 }
 
 //    #region " Sort "
