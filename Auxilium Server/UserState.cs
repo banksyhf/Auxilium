@@ -20,91 +20,106 @@ namespace Auxilium_Server.Classes
         public DateTime LastAction;
         public DateTime LastPayout;
 
+        public byte PacketCount;
+        public DateTime LastPacket;
+
         public bool Authenticated;
 
         //I feel ashamed. - Aeonhack
         public void AddPoints(int points)
         {
-            Points = Math.Min(Points + points, 1482000);
+            Points = Math.Min(Points + points, 2812000);
 
-            //Ranks 38-42 are reserved
-            if (Rank > 37)
+            if (Rank >= 37)
                 return;
-            if (Points >= 1406000)
+
+            if (Points >= 2812000)
                 Rank = 37;
-            else if (Points >= 1332000)
+            else if (Points >= 2664000)
                 Rank = 36;
-            else if (Points >= 1260000)
+            else if (Points >= 2520000)
                 Rank = 35;
-            else if (Points >= 1190000)
+            else if (Points >= 2380000)
                 Rank = 34;
-            else if (Points >= 1122000)
+            else if (Points >= 2244000)
                 Rank = 33;
-            else if (Points >= 1056000)
+            else if (Points >= 2112000)
                 Rank = 32;
-            else if (Points >= 992000)
+            else if (Points >= 1984000)
                 Rank = 31;
-            else if (Points >= 930000)
+            else if (Points >= 1860000)
                 Rank = 30;
-            else if (Points >= 870000)
+            else if (Points >= 1740000)
                 Rank = 29;
-            else if (Points >= 812000)
+            else if (Points >= 1624000)
                 Rank = 28;
-            else if (Points >= 756000)
+            else if (Points >= 1512000)
                 Rank = 27;
-            else if (Points >= 702000)
+            else if (Points >= 1404000)
                 Rank = 26;
-            else if (Points >= 650000)
+            else if (Points >= 1300000)
                 Rank = 25;
-            else if (Points >= 600000)
+            else if (Points >= 1200000)
                 Rank = 24;
-            else if (Points >= 552000)
+            else if (Points >= 1104000)
                 Rank = 23;
-            else if (Points >= 506000)
+            else if (Points >= 1012000)
                 Rank = 22;
-            else if (Points >= 462000)
+            else if (Points >= 924000)
                 Rank = 21;
-            else if (Points >= 420000)
+            else if (Points >= 840000)
                 Rank = 20;
-            else if (Points >= 380000)
+            else if (Points >= 760000)
                 Rank = 19;
-            else if (Points >= 342000)
+            else if (Points >= 684000)
                 Rank = 18;
-            else if (Points >= 306000)
+            else if (Points >= 612000)
                 Rank = 17;
-            else if (Points >= 272000)
+            else if (Points >= 544000)
                 Rank = 16;
-            else if (Points >= 240000)
+            else if (Points >= 480000)
                 Rank = 15;
-            else if (Points >= 210000)
+            else if (Points >= 420000)
                 Rank = 14;
-            else if (Points >= 182000)
+            else if (Points >= 364000)
                 Rank = 13;
-            else if (Points >= 156000)
+            else if (Points >= 312000)
                 Rank = 12;
-            else if (Points >= 132000)
+            else if (Points >= 264000)
                 Rank = 11;
-            else if (Points >= 110000)
+            else if (Points >= 220000)
                 Rank = 10;
-            else if (Points >= 90000)
+            else if (Points >= 180000)
                 Rank = 9;
-            else if (Points >= 72000)
+            else if (Points >= 144000)
                 Rank = 8;
-            else if (Points >= 56000)
+            else if (Points >= 112000)
                 Rank = 7;
-            else if (Points >= 42000)
+            else if (Points >= 84000)
                 Rank = 6;
-            else if (Points >= 30000)
+            else if (Points >= 60000)
                 Rank = 5;
-            else if (Points >= 20000)
+            else if (Points >= 40000)
                 Rank = 4;
-            else if (Points >= 12000)
+            else if (Points >= 24000)
                 Rank = 3;
-            else if (Points >= 6000)
+            else if (Points >= 12000)
                 Rank = 2;
-            else if (Points >= 2000)
+            else if (Points >=4000)
                 Rank = 1;
         }
 
+        public bool IsFlooding()
+        {
+            PacketCount += 1;
+            if (PacketCount = 10)
+                return true;
+
+            if ((DateTime.Now - LastPacket).TotalSeconds = 3)
+                PacketCount = 0;
+
+            LastPacket = DateTime.Now;
+            return false;
+        }
     }
 }

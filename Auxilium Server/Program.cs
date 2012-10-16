@@ -44,7 +44,8 @@ namespace Auxilium_Server
         static void Main(string[] args)
         {
             SQL = new MySqlConnection();
-            SQL.ConnectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
+            SQL.ConnectionString = "server=localhost;uid=root;database=auxilium";
+           //SQL.ConnectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
             SQL.Open();
 
             Channels = new string[] { "Lounge", "VB.NET", "C#" };
@@ -84,35 +85,50 @@ namespace Auxilium_Server
             if (!Listener.Listening)
                 return;
 
-            CheckSaveUsers();
+            UpdateAndSaveUsers(false);
         }
 
-        static void CheckSaveUsers(Client s = null)
+        static void AwardPoints(Client c)
         {
-            DateTime check = DateTime.Now;
+            if ((DateTime.Now - c.Value.LastAction).TotalMinutes >= 3)
+            {
+                c.Value.Idle = true;
+            }
+
+            //2812000 at 4.65 points per second should require about 1 week of active time to max rank.
+            double Points = (DateTime.Now - c.Value.LastPayout).TotalSeconds * 4.65;
+            c.Value.LastPayout = DateTime.Now;
+
+            if (c.Value.Idle)
+            {
+			   if(c.Value.Rank < 29)
+                 c.Value.AddPoints((int)(Points * 1.0));
+            }
+            else
+            {
+                c.Value.AddPoints((int)Points);
+            }
+        }
+
+        static void UpdateAndSaveUsers(bool shutDown)
+        {
+            bool doBackup = false;
+            if ((DateTime.Now - LastBackup).TotalMinutes >= 20)
+            {
+                doBackup = true;
+                LastBackup = DateTime.Now;
+            }
+
             foreach (Client c in Listener.Clients)
             {
-                if ((DateTime.Now - c.Value.LastAction).TotalMinutes >=  3)
-                {
-                    c.Value.Idle = true;
-                }
+                AwardPoints(c);
 
-                double Points = (DateTime.Now - c.Value.LastPayout).TotalSeconds * 0.85;
+                if(!shutDown)
+                    FullUserListUpdate();
 
-                if (c.Value.Idle)
+                if (doBackup || shutDown)
                 {
-                    c.Value.AddPoints((int)(Points * 0.1));
-                }
-                else
-                {
-                   c.Value.AddPoints((int)Points);
-                }
-
-                FullUserListUpdate();
-
-                if ((check - LastBackup).TotalMinutes >= 20)
-                {
-                    LastBackup = DateTime.Now;
+                   
                     MySqlCommand q = new MySqlCommand(string.Empty, SQL);
                     q.CommandText = "UPDATE users SET Points=@Points,Rank=@Rank,Mute=@Mute WHERE Username=@Username;";
                     q.Parameters.AddWithValue("@Points", c.Value.Points);
@@ -203,6 +219,8 @@ namespace Auxilium_Server
                     byte[] data = Packer.Serialize((byte)ServerPacket.UserLeave, c.Value.UserID);
                     Broadcast(c.Value.Channel, data);
 
+                    AwardPoints(c);
+
                     //Let's save the users data.
                     MySqlCommand q = new MySqlCommand(string.Empty, SQL);
                     q.CommandText = "UPDATE users SET Points=@Points,Rank=@Rank,Mute=@Mute WHERE Username=@Username;";
@@ -221,6 +239,13 @@ namespace Auxilium_Server
         {
             try
             {
+                //Anti-flood measures.
+                if (c.Value.IsFlooding())
+                {
+                    c.Disconnect();
+                    return;
+                }
+
                 object[] values = Packer.Deserialize(e);
                 ClientPacket packet = (ClientPacket)values[0];
 
@@ -238,7 +263,7 @@ namespace Auxilium_Server
                             break;
                         case ClientPacket.PM:
                             HandleWakeup(c);
-                            HandlePMPacket((string)values[1], (string)values[2], (string)values[3], c.Value.Username);
+                            HandlePMPacket(c, (string)values[1], (string)values[2], (string)values[3]);
                             break;
                         case ClientPacket.KeepAlive:
                             HandleKeepAlivePacket(c);
@@ -272,7 +297,9 @@ namespace Auxilium_Server
         //TODO: Don't disconnect people, instead return an error code.
         static void HandleSignInPacket(Client c, string name, string pass)
         {
-            if (name.Length == 0 || name.Length > 16 || pass.Length != 40)
+            string n = name.Trim();
+
+            if (n.Length == 0 || n.Length > 16 || pass.Length != 40 || !IsValidName(n))
             {
                 byte[] fail = Packer.Serialize((byte)ServerPacket.SignIn, false);
                 c.Send(fail);
@@ -282,7 +309,7 @@ namespace Auxilium_Server
 
             MySqlCommand q = new MySqlCommand(string.Empty, SQL);
             q.CommandText = "SELECT Points, Rank, Ban, Mute FROM users WHERE Username=@Username AND Password=@Password;";
-            q.Parameters.AddWithValue("@Username", name);
+            q.Parameters.AddWithValue("@Username", n);
             q.Parameters.AddWithValue("@Password", pass);
 
             MySqlDataReader r = q.ExecuteReader();
@@ -324,14 +351,14 @@ namespace Auxilium_Server
 
 
                 //If this user is already logged in from somewhere else then disconnect them.
-                Client existing = ClientFromUsername(name);
+                Client existing = ClientFromUsername(n);
                 if (existing != null)
                 {
                     existing.Disconnect();
                 }
 
                 c.Value.UserID = RunningID++;
-                c.Value.Username = name;
+                c.Value.Username = n;
 
                 c.Value.Points = points;
                 c.Value.Rank = rank;
@@ -354,7 +381,9 @@ namespace Auxilium_Server
 
         static void HandleRegisterPacket(Client c, string name, string pass)
         {
-            if (name.Length == 0 || name.Length > 16 || pass.Length != 40)
+            string n = name.Trim();
+
+            if (n.Length == 0 || n.Length > 16 || pass.Length != 40 || !IsValidName(n))
             {
                 byte[] fail = Packer.Serialize((byte)ServerPacket.Register, false);
                 c.Send(fail);
@@ -363,7 +392,7 @@ namespace Auxilium_Server
 
             MySqlCommand q = new MySqlCommand(string.Empty, SQL);
             q.CommandText = "SELECT Count(*) FROM users WHERE Username=@Username";
-            q.Parameters.AddWithValue("@Username", name);
+            q.Parameters.AddWithValue("@Username", n);
 
             MySqlDataReader r = q.ExecuteReader();
             bool available = r.Read() && (r.GetInt16(0) == 0);
@@ -373,7 +402,7 @@ namespace Auxilium_Server
             {
                 MySqlCommand q2 = new MySqlCommand(string.Empty, SQL);
                 q2.CommandText = "INSERT INTO users VALUES (@Username,@Password,0,0,0,0);";
-                q2.Parameters.AddWithValue("@Username", name);
+                q2.Parameters.AddWithValue("@Username", n);
                 q2.Parameters.AddWithValue("@Password", pass);
 
                 //If registration fails, this will return false.
@@ -408,20 +437,30 @@ namespace Auxilium_Server
             }
         }
 
-        static void HandlePMPacket(string username, string message, string subject, string from)
+        static void HandlePMPacket(Client c, string username, string message, string subject)
         {
-            Client c = ClientFromUsername(username);
+            if (!(IsValidName(username) && IsValidData(message) && IsValidData(subject)))
+            {
+                c.Disconnect();
+                return;
+            }
 
-            if (c == null)
+            Client u = ClientFromUsername(username);
+            if (u == null)
                 return;
 
-            byte[] data = Packer.Serialize((byte)ServerPacket.PM, from, message, subject);
+            byte[] data = Packer.Serialize((byte)ServerPacket.PM, c.Value.Username, message, subject);
             c.Send(data);
-
         }
 
         static void HandleChatPacket(Client c, string message)
         {
+            if (!IsValidData(message))
+            {
+                c.Disconnect();
+                return;
+            }
+
             if (c.Value.Rank == (byte)SpecialRank.Admin && message.Contains("~"))
             {
                 Console.WriteLine(c.Value.Username + " executed admin command. Command: " + message);
@@ -432,7 +471,7 @@ namespace Auxilium_Server
                 if (c.Value.Mute)
                     return;
 
-                c.Value.AddPoints(5); //AWARD 5 POINTS FOR ACTIVITY*** (This will be less exploitable when anti-spam is implemented.)
+                c.Value.AddPoints(5); //AWARD 5 POINTS FOR ACTIVITY***
 
                 byte[] data = Packer.Serialize((byte)ServerPacket.Chatter, c.Value.UserID, message);
                 BroadcastExclusive(c.Value.UserID, c.Value.Channel, data);
@@ -551,6 +590,30 @@ namespace Auxilium_Server
             }
 
             return null;
+        }
+
+        static bool IsValidName(string name)
+        {
+            string n = name.ToUpper();
+
+            for (int i = 0; i < name.Length; i++)
+            {
+                if (!(n[i] == 45 || n[i] == 95 || char.IsNumber(n[i]) || n[i] > 64 && n[i] < 91))
+                    return false;
+            }
+
+            return true;
+        }
+
+        static bool IsValidData(string data)
+        {
+            for (int i = 0; i < data.Length; i++)
+            {
+                if (!(data[i] == 10 || data[i] == 13 || data[i] > 31 && data[i] < 127))
+                    return false;
+            }
+
+            return true;
         }
 
         #endregion
@@ -692,7 +755,7 @@ namespace Auxilium_Server
                         MOTD = GetMOTD();
                         break;
                     case "shutdown":
-                        CheckSaveUsers();
+                        UpdateAndSaveUsers(true);
                         Environment.Exit(0);
                         break;
                 }
