@@ -12,6 +12,7 @@ namespace Auxilium.Classes
     {
         //TODO: Lock objects where needed.
         //TODO: Raise Client_Fail with exception.
+        //TODO: Create and handle ReadQueue.
 
         public event Client_FailEventHandler Client_Fail;
         public delegate void Client_FailEventHandler(Client s);
@@ -57,17 +58,22 @@ namespace Auxilium.Classes
             }
         }
 
-
         private AsyncOperation O;
         private Socket Handle;
 
+        private int SendIndex;
+        private byte[] SendBuffer;
+
+        private int ReadIndex;
+        private byte[] ReadBuffer;
+
+        private Queue<byte[]> SendQueue;
+
         private SocketAsyncEventArgs[] Items = new SocketAsyncEventArgs[2];
-        private byte[] OperationData;
-        private Queue<byte[]> Operation;
 
         private bool[] Processing = new bool[2];
 
-        public ushort Size { get; set; }
+        public ushort BufferSize { get; set; }
         public object UserState { get; set; }
 
         private IPEndPoint _EndPoint;
@@ -117,7 +123,15 @@ namespace Auxilium.Classes
         private void Initialize()
         {
             Processing = new bool[2];
-            Operation = new Queue<byte[]>();
+
+            SendIndex = 0;
+            ReadIndex = 0;
+
+            SendBuffer = new byte[0];
+            ReadBuffer = new byte[0];
+
+            SendQueue = new Queue<byte[]>();
+
             Items = new SocketAsyncEventArgs[2];
 
             Items[0] = new SocketAsyncEventArgs();
@@ -137,7 +151,7 @@ namespace Auxilium.Classes
                         case SocketAsyncOperation.Connect:
                             _EndPoint = (IPEndPoint)Handle.RemoteEndPoint;
                             _Connected = true;
-                            Items[0].SetBuffer(new byte[Size], 0, Size);
+                            Items[0].SetBuffer(new byte[BufferSize], 0, BufferSize);
 
                             O.Post(x => OnClient_State(true), null);
                             if (!Handle.ReceiveAsync(e))
@@ -149,7 +163,8 @@ namespace Auxilium.Classes
 
                             if (e.BytesTransferred != 0)
                             {
-                                HandleMessage(Chunk(e.Buffer, e.BytesTransferred));
+                                HandleRead(e.Buffer, 0, e.BytesTransferred);
+
                                 if (!Handle.ReceiveAsync(e))
                                     Process(null, e);
                             }
@@ -163,10 +178,14 @@ namespace Auxilium.Classes
                                 return;
 
                             O.Post(x => OnClient_Write(), null);
-                            if (Operation.Count == 0)
+                            SendIndex += e.BytesTransferred;
+
+                            bool EOS = (SendIndex >= SendBuffer.Length);
+
+                            if (SendQueue.Count == 0 && EOS)
                                 Processing[1] = false;
                             else
-                                HandleMessages();
+                                HandleSendQueue();
                             break;
                     }
                 }
@@ -195,8 +214,11 @@ namespace Auxilium.Classes
 
             if (Handle != null)
                 Handle.Close();
-            if (Operation != null)
-                Operation.Clear();
+            if (SendQueue != null)
+                SendQueue.Clear();
+
+            SendBuffer = new byte[0];
+            ReadBuffer = new byte[0];
 
             if (Raise)
                 O.Post(x => OnClient_State(false), null);
@@ -210,21 +232,27 @@ namespace Auxilium.Classes
             if (!Connected)
                 return;
 
-            Operation.Enqueue(data);
+            SendQueue.Enqueue(data);
 
             if (!Processing[1])
             {
                 Processing[1] = true;
-                HandleMessages();
+                HandleSendQueue();
             }
         }
 
-        private void HandleMessages()
+        private void HandleSendQueue()
         {
             try
             {
-                OperationData = Header(Operation.Dequeue());
-                Items[1].SetBuffer(OperationData, 0, OperationData.Length);
+                if (SendIndex >= SendBuffer.Length)
+                {
+                    SendIndex = 0;
+                    SendBuffer = Header(SendQueue.Dequeue());
+                }
+
+                int write = Math.Min(SendBuffer.Length - SendIndex, BufferSize);
+                Items[1].SetBuffer(SendBuffer, SendIndex, write);
 
                 if (!Handle.SendAsync(Items[1]))
                     Process(null, Items[1]);
@@ -235,44 +263,41 @@ namespace Auxilium.Classes
             }
         }
 
-        private byte[] Chunk(byte[] data, int length)
-        {
-            byte[] T = new byte[length];
-            Buffer.BlockCopy(data, 0, T, 0, length);
-            return T;
-        }
-
         private byte[] Header(byte[] data)
         {
-            byte[] T = new byte[data.Length + 2];
-            Buffer.BlockCopy(BitConverter.GetBytes(Convert.ToUInt16(data.Length)), 0, T, 0, 2);
-            Buffer.BlockCopy(data, 0, T, 2, data.Length);
+            byte[] T = new byte[data.Length + 4];
+            Buffer.BlockCopy(BitConverter.GetBytes(data.Length), 0, T, 0, 4);
+            Buffer.BlockCopy(data, 0, T, 4, data.Length);
             return T;
         }
 
-        private void HandleMessage(byte[] data)
+        private void HandleRead(byte[] data, int index, int length)
         {
             try
             {
-                byte[] T = null;
-                ushort Index = 0;
-                ushort Length = 0;
-
-                while (Index < data.Length)
+                if (ReadIndex >= ReadBuffer.Length)
                 {
-                    Length = BitConverter.ToUInt16(data, Index);
-                    if (Index + Length + 2 > data.Length)
-                        return;
+                    ReadIndex = 0;
+                    Array.Resize(ref ReadBuffer, BitConverter.ToInt32(data, index));
+                    index += 4;
+                }
 
-                    T = new byte[Length];
-                    Buffer.BlockCopy(data, Index + 2, T, 0, Length);
+                int read = Math.Min(ReadBuffer.Length - ReadIndex, length - index);
+                Buffer.BlockCopy(data, index, ReadBuffer, ReadIndex, read);
+                ReadIndex += read;
 
-                    Index += (ushort)(Length + 2);
+                if (ReadIndex >= ReadBuffer.Length)
+                {
+                    O.Post(x => OnClient_Read((byte[])x), ReadBuffer);
+                }
 
-                    O.Post(x => OnClient_Read((byte[])x), T);
+                if (read < (length - index))
+                {
+                    HandleRead(data, index + read, length);
                 }
             }
             catch { }
         }
     }
+
 }

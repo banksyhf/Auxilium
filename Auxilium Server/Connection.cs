@@ -14,6 +14,7 @@ namespace Auxilium_Server.Classes
     {
         //TODO: Lock objects where needed.
         //TODO: Raise Client_Fail with exception.
+        //TODO: Create and handle ReadQueue.
 
         public event Client_FailEventHandler Client_Fail;
         public delegate void Client_FailEventHandler(Client s);
@@ -27,13 +28,13 @@ namespace Auxilium_Server.Classes
         }
 
         public event Client_StateEventHandler Client_State;
-        public delegate void Client_StateEventHandler(Client s, bool open);
+        public delegate void Client_StateEventHandler(Client s, bool connected);
 
-        private void OnClient_State(bool open)
+        private void OnClient_State(bool connected)
         {
             if (Client_State != null)
             {
-                Client_State(this, open);
+                Client_State(this, connected);
             }
         }
 
@@ -61,13 +62,19 @@ namespace Auxilium_Server.Classes
 
         private Socket Handle;
 
+        private int SendIndex;
+        private byte[] SendBuffer;
+
+        private int ReadIndex;
+        private byte[] ReadBuffer;
+
+        private Queue<byte[]> SendQueue;
+
         private SocketAsyncEventArgs[] Items = new SocketAsyncEventArgs[2];
-        private byte[] OperationData;
-        private Queue<byte[]> Operation;
 
         private bool[] Processing = new bool[2];
 
-        public ushort Size { get; set; }
+        public ushort BufferSize { get; set; }
         public UserState Value { get; set; }
 
         private IPEndPoint _EndPoint;
@@ -82,10 +89,10 @@ namespace Auxilium_Server.Classes
             }
         }
 
-        private bool _Connection;
-        public bool Connection
+        private bool _Connected;
+        public bool Connected
         {
-            get { return _Connection; }
+            get { return _Connected; }
         }
 
         public Client(Socket sock, ushort size)
@@ -97,9 +104,9 @@ namespace Auxilium_Server.Classes
 
                 Handle = sock;
 
-                Size = size;
+                BufferSize = size;
                 _EndPoint = (IPEndPoint)Handle.RemoteEndPoint;
-                _Connection = true;
+                _Connected = true;
 
                 if (!Handle.ReceiveAsync(Items[0]))
                     Process(null, Items[0]);
@@ -113,7 +120,14 @@ namespace Auxilium_Server.Classes
         private void Initialize()
         {
             Processing = new bool[2];
-            Operation = new Queue<byte[]>();
+
+            SendIndex = 0;
+            ReadIndex = 0;
+
+            SendBuffer = new byte[0];
+            ReadBuffer = new byte[0];
+
+            SendQueue = new Queue<byte[]>();
 
             Items[0] = new SocketAsyncEventArgs();
             Items[1] = new SocketAsyncEventArgs();
@@ -131,20 +145,21 @@ namespace Auxilium_Server.Classes
                     {
                         case SocketAsyncOperation.Connect:
                             _EndPoint = (IPEndPoint)Handle.RemoteEndPoint;
-                            _Connection = true;
-                            Items[0].SetBuffer(new byte[Size], 0, Size);
+                            _Connected = true;
+                            Items[0].SetBuffer(new byte[BufferSize], 0, BufferSize);
 
                             OnClient_State(true);
                             if (!Handle.ReceiveAsync(e))
                                 Process(null, e);
                             break;
                         case SocketAsyncOperation.Receive:
-                            if (!_Connection)
+                            if (!_Connected)
                                 return;
 
                             if (e.BytesTransferred != 0)
                             {
-                                HandleMessage(Chunk(e.Buffer, e.BytesTransferred));
+                                HandleRead(e.Buffer, 0, e.BytesTransferred);
+
                                 if (!Handle.ReceiveAsync(e))
                                     Process(null, e);
                             }
@@ -154,14 +169,18 @@ namespace Auxilium_Server.Classes
                             }
                             break;
                         case SocketAsyncOperation.Send:
-                            if (!_Connection)
+                            if (!_Connected)
                                 return;
 
                             OnClient_Write();
-                            if (Operation.Count == 0)
+                            SendIndex += e.BytesTransferred;
+
+                            bool EOS = (SendIndex >= SendBuffer.Length);
+
+                            if (SendQueue.Count == 0 && EOS)
                                 Processing[1] = false;
                             else
-                                HandleMessages();
+                                HandleSendQueue();
                             break;
                     }
                 }
@@ -185,13 +204,16 @@ namespace Auxilium_Server.Classes
             else
                 Processing[0] = true;
 
-            bool Raise = Connection;
-            _Connection = false;
+            bool Raise = Connected;
+            _Connected = false;
 
             if (Handle != null)
                 Handle.Close();
-            if (Operation != null)
-                Operation.Clear();
+            if (SendQueue != null)
+                SendQueue.Clear();
+
+            SendBuffer = new byte[0];
+            ReadBuffer = new byte[0];
 
             if (Raise)
                 OnClient_State(false);
@@ -200,26 +222,33 @@ namespace Auxilium_Server.Classes
             _EndPoint = null;
         }
 
+
         public void Send(byte[] data)
         {
-            if (!Connection)
+            if (!Connected)
                 return;
 
-            Operation.Enqueue(data);
+            SendQueue.Enqueue(data);
 
             if (!Processing[1])
             {
                 Processing[1] = true;
-                HandleMessages();
+                HandleSendQueue();
             }
         }
 
-        private void HandleMessages()
+        private void HandleSendQueue()
         {
             try
             {
-                OperationData = Header(Operation.Dequeue());
-                Items[1].SetBuffer(OperationData, 0, OperationData.Length);
+                if (SendIndex >= SendBuffer.Length)
+                {
+                    SendIndex = 0;
+                    SendBuffer = Header(SendQueue.Dequeue());
+                }
+
+                int write = Math.Min(SendBuffer.Length - SendIndex, BufferSize);
+                Items[1].SetBuffer(SendBuffer, SendIndex, write);
 
                 if (!Handle.SendAsync(Items[1]))
                     Process(null, Items[1]);
@@ -230,64 +259,65 @@ namespace Auxilium_Server.Classes
             }
         }
 
-        private byte[] Chunk(byte[] data, int length)
-        {
-            byte[] T = new byte[length];
-            Buffer.BlockCopy(data, 0, T, 0, length);
-            return T;
-        }
-
         private byte[] Header(byte[] data)
         {
-            byte[] T = new byte[data.Length + 2];
-            Buffer.BlockCopy(BitConverter.GetBytes(Convert.ToUInt16(data.Length)), 0, T, 0, 2);
-            Buffer.BlockCopy(data, 0, T, 2, data.Length);
+            byte[] T = new byte[data.Length + 4];
+            Buffer.BlockCopy(BitConverter.GetBytes(data.Length), 0, T, 0, 4);
+            Buffer.BlockCopy(data, 0, T, 4, data.Length);
             return T;
         }
 
-        private void HandleMessage(byte[] data)
+        private void HandleRead(byte[] data, int index, int length)
         {
-            byte[] T = null;
-            ushort Index = 0;
-            ushort Length = 0;
-
-            while (Index < data.Length)
+            try
             {
-                Length = BitConverter.ToUInt16(data, Index);
-                if (Index + Length + 2 > data.Length)
-                    return;
+                if (ReadIndex >= ReadBuffer.Length)
+                {
+                    ReadIndex = 0;
+                    Array.Resize(ref ReadBuffer, BitConverter.ToInt32(data, index));
+                    index += 4;
+                }
 
-                T = new byte[Length];
-                Buffer.BlockCopy(data, Index + 2, T, 0, Length);
+                int read = Math.Min(ReadBuffer.Length - ReadIndex, length - index);
+                Buffer.BlockCopy(data, index, ReadBuffer, ReadIndex, read);
+                ReadIndex += read;
 
-                Index += (ushort)(Length + 2);
+                if (ReadIndex >= ReadBuffer.Length)
+                {
+                    OnClient_Read(ReadBuffer);
+                }
 
-                OnClient_Read(T);
+                if (read < (length - index))
+                {
+                    HandleRead(data, index + read, length);
+                }
             }
+            catch { }
         }
+
     }
 
     class Server
     {
         public event Server_StateEventHandler Server_State;
-        public delegate void Server_StateEventHandler(Server s, bool open);
+        public delegate void Server_StateEventHandler(Server s, bool listening);
 
-        private void OnServer_State(bool open)
+        private void OnServer_State(bool listening)
         {
             if (Server_State != null)
             {
-                Server_State(this, open);
+                Server_State(this, listening);
             }
         }
 
         public event Client_StateEventHandler Client_State;
-        public delegate void Client_StateEventHandler(Server s, Client c, bool open);
+        public delegate void Client_StateEventHandler(Server s, Client c, bool connected);
 
-        private void OnClient_State(Client c, bool open)
+        private void OnClient_State(Client c, bool connected)
         {
             if (Client_State != null)
             {
-                Client_State(this, c, open);
+                Client_State(this, c, connected);
             }
         }
 
@@ -318,7 +348,7 @@ namespace Auxilium_Server.Classes
         private SocketAsyncEventArgs Item;
 
         private bool Processing;
-        public ushort Size { get; set; }
+        public ushort BufferSize { get; set; }
         public ushort MaxConnections { get; set; }
 
         private bool _Listening;
@@ -374,7 +404,7 @@ namespace Auxilium_Server.Classes
             {
                 if (e.SocketError == SocketError.Success)
                 {
-                    Client T = new Client(e.AcceptSocket, Size);
+                    Client T = new Client(e.AcceptSocket, BufferSize);
 
                     lock (_Clients)
                     {
@@ -442,5 +472,6 @@ namespace Auxilium_Server.Classes
         }
 
     }
+
 
 }

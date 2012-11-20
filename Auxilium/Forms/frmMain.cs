@@ -11,6 +11,9 @@ using System.Runtime.InteropServices;
 using Auxilium.Forms;
 using Auxilium.Classes;
 using Microsoft.Win32;
+using System.IO;
+using Microsoft.VisualBasic; // :(
+using Microsoft.VisualBasic.Devices; // :(
 
 namespace Auxilium
 {
@@ -28,6 +31,8 @@ namespace Auxilium
         private int UnreadPMs = 0;
         private List<PrivateMessage> PMs = new List<PrivateMessage>();
 
+        private Audio AudioPlayer = new Audio();//TODO: Handle this differently to ditch the VisualBasic reference.
+
         private string Username;
         private int Channel;
 
@@ -35,9 +40,15 @@ namespace Auxilium
 
         private bool ShowTimestamps = true;
         private bool SpaceOutMessages = true;
-        public static bool ShowChatNotifications = true;
+        private bool ShowChatNotifications = true;
+        private bool AudibleNotification = false;
         private bool ShowJoinLeaveEvents = false;
         private bool WriteMessageToFile = false;
+
+        private bool PauseChat = false;
+        private List<ChatMessage> PauseBuffer = new List<ChatMessage>();
+
+        private StreamWriter chatLogger;
 
         #endregion
 
@@ -52,7 +63,7 @@ namespace Auxilium
 
             //Hook events and initialize socket.
             Connection = new Client();
-            Connection.Size = 2048;
+            Connection.BufferSize = 32767;
             Connection.Client_State += Client_State;
             Connection.Client_Fail += Client_Fail;
             Connection.Client_Read += Client_Read;
@@ -63,11 +74,14 @@ namespace Auxilium
             //Prevents the header from auto-resizing.
             lvUsers.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.None);
 
+            //TODO: This should use a better format.
+            chatLogger = new StreamWriter("chat-" + DateTime.Now.ToFileTimeUtc() + ".log");
+            chatLogger.AutoFlush = true;
         }
 
         private void frmMain_Shown(object sender, EventArgs e)
         {
-           //Hide users online until user is in chat.
+            //Hide users online until user is in chat.
             tslUsersOnline.Visible = false;
             tbUser.Select();
 
@@ -254,6 +268,9 @@ namespace Auxilium
                 Functions.FlashWindow(this.Handle, true);
                 niAux.ShowBalloonTip(100, "New Private Message", string.Format("Message From: {0}\nSubject: {1}", user, subject), ToolTipIcon.Info);
 
+                if (AudibleNotification)
+                    AudioPlayer.Play(Properties.Resources.Notify, AudioPlayMode.Background);
+
                 string pt = pMsToolStripMenuItem.Text;
 
                 pMsToolStripMenuItem.Text = "PMs (" + (UnreadPMs += 1) + ")";
@@ -365,6 +382,9 @@ namespace Auxilium
             {
                 Functions.FlashWindow(this.Handle, true);
                 niAux.ShowBalloonTip(100, user.Name, message, ToolTipIcon.Info);
+
+                if (AudibleNotification)
+                    AudioPlayer.Play(Properties.Resources.Notify, AudioPlayMode.Background);
             }
         }
 
@@ -380,6 +400,9 @@ namespace Auxilium
             {
                 Functions.FlashWindow(this.Handle, true);
                 niAux.ShowBalloonTip(100, "Global Broadcast", message, ToolTipIcon.Info);
+
+                if (AudibleNotification)
+                    AudioPlayer.Play(Properties.Resources.Notify, AudioPlayMode.Background);
             }
         }
 
@@ -583,6 +606,11 @@ namespace Auxilium
             ShowChatNotifications = tsmChatNotifications.Checked;
         }
 
+        private void toolStripMenuItem1_CheckedChanged(object sender, EventArgs e)
+        {
+            AudibleNotification = toolStripMenuItem1.Checked;
+        }
+
         private void tsmSpaceMessages_CheckedChanged(object sender, EventArgs e)
         {
             SpaceOutMessages = tsmSpaceMessages.Checked;
@@ -616,8 +644,38 @@ namespace Auxilium
             rtbChat.Clear();
             rtbMessage.Clear();
 
+            lock (PauseBuffer)
+                PauseBuffer.Clear();
+
+            LogClearEvent();
+
             rtbChat.Font = fd.Font;
             rtbMessage.Font = fd.Font;
+        }
+
+        private void pauseChatToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!pauseChatToolStripMenuItem.Checked)
+            {
+                lock (PauseBuffer)
+                {
+                    foreach (ChatMessage m in PauseBuffer)
+                    {
+                        if (m.Color != Color.Empty)
+                        {
+                            AppendText(m.Color, m.Value);
+                        }
+                        else
+                        {
+                            AppendLine();
+                        }
+                    }
+
+                    PauseBuffer.Clear();
+                }
+            }
+
+            PauseChat = pauseChatToolStripMenuItem.Checked;
         }
 
         #endregion
@@ -651,30 +709,18 @@ namespace Auxilium
             rtbChat.Clear();
             rtbMessage.Clear();
             lvUsers.Items.Clear();
+
+            lock (PauseBuffer)
+                PauseBuffer.Clear();
+
+            LogClearEvent();
         }
 
-        bool PreserveSelection;
-        int SelectionIndex, SelectionLength;
-
-        private void BeginUpdateChat()
+        private void ScrollChat()
         {
-            SelectionIndex = rtbChat.SelectionStart;
-            SelectionLength = rtbChat.SelectionLength;
-
-            PreserveSelection = (SelectionIndex < rtbChat.TextLength);
-        }
-
-        private void EndUpdateChat()
-        {
-            if (PreserveSelection)
-            {
-                rtbChat.SelectionStart = SelectionIndex;
-                rtbChat.SelectionLength = SelectionLength;
-            }
-            else
-            {
-                rtbChat.SelectionStart = rtbChat.Text.Length;
-            }
+            rtbChat.SelectionStart = rtbChat.TextLength;
+            rtbChat.SelectionLength = 0;
+            rtbChat.ScrollToCaret();
         }
 
         private void AppendChat(Color nameColor, Color msgColor, string name, string message)
@@ -684,8 +730,6 @@ namespace Auxilium
             if (ShowTimestamps)
                 sender = string.Format("[{0}] {1}", DateTime.Now.ToShortTimeString(), sender);
 
-            BeginUpdateChat();
-
             AppendText(nameColor, sender);
             AppendText(msgColor, message);
             AppendLine();
@@ -693,12 +737,11 @@ namespace Auxilium
             if (SpaceOutMessages)
                 AppendLine();
 
-            EndUpdateChat();
+            ScrollChat();
         }
 
         private void AppendText(Color c, string text)
         {
-            int start = rtbChat.SelectionStart;
             rtbChat.SelectionStart = rtbChat.TextLength;
             rtbChat.SelectionLength = 0;
             rtbChat.SelectionColor = c;
@@ -706,20 +749,28 @@ namespace Auxilium
             rtbChat.AppendText(text);
             rtbChat.SelectionColor = rtbChat.ForeColor;
 
-            if (WriteMessageToFile)
+            if (PauseChat)
             {
-                //TODO: Write message here.
+                lock (PauseBuffer)
+                    PauseBuffer.Add(new ChatMessage(c, text));
             }
+
+            if (WriteMessageToFile)
+                chatLogger.Write(text);
         }
 
         private void AppendLine()
         {
             rtbChat.AppendText(Environment.NewLine);
 
-            if (WriteMessageToFile)
+            if (PauseChat)
             {
-                //TODO: Write message here.
+                lock (PauseBuffer)
+                    PauseBuffer.Add(new ChatMessage(Color.Empty, Environment.NewLine));
             }
+
+            if (WriteMessageToFile)
+                chatLogger.WriteLine();
         }
 
         private void splitContainer2_SplitterMoved(object sender, SplitterEventArgs e)
@@ -864,5 +915,28 @@ namespace Auxilium
                     return Color.Blue;
             }
         }
+
+        private void LogClearEvent()
+        {
+            if (!WriteMessageToFile)
+                return;
+
+            chatLogger.WriteLine();
+            chatLogger.Write("**** Chat cleared at: " + DateTime.UtcNow.ToLongTimeString() + " ****");
+            chatLogger.WriteLine();
+        }
+
+        struct ChatMessage
+        {
+            public Color Color;
+            public string Value;
+
+            public ChatMessage(Color color, string value)
+            {
+                Color = color;
+                Value = value;
+            }
+        }
+
     }
 }

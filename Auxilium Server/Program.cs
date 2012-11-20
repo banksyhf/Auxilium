@@ -44,8 +44,7 @@ namespace Auxilium_Server
         static void Main(string[] args)
         {
             SQL = new MySqlConnection();
-            SQL.ConnectionString = "server=localhost;uid=root;database=auxilium";
-           //SQL.ConnectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
+            SQL.ConnectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
             SQL.Open();
 
             Channels = new string[] { "Lounge", "VB.NET", "C#" };
@@ -55,9 +54,9 @@ namespace Auxilium_Server
             Packer = new Pack();
             Listener = new Server();
 
-            Listener.Size = 2048;
+            Listener.BufferSize = 32767;
             Listener.Client_Read += Client_Read;
-            Listener.MaxConnections = 1000;
+            Listener.MaxConnections = 200;
             Listener.Client_State += Client_State;
             Listener.Server_State += Server_State;
             Listener.Listen(Port);
@@ -101,8 +100,8 @@ namespace Auxilium_Server
 
             if (c.Value.Idle)
             {
-			   if(c.Value.Rank < 29)
-                 c.Value.AddPoints((int)(Points * 1.0));
+                if (c.Value.Rank < 29)
+                    c.Value.AddPoints((int)(Points * 1.0));
             }
             else
             {
@@ -123,12 +122,12 @@ namespace Auxilium_Server
             {
                 AwardPoints(c);
 
-                if(!shutDown)
+                if (!shutDown)
                     FullUserListUpdate();
 
                 if (doBackup || shutDown)
                 {
-                   
+
                     MySqlCommand q = new MySqlCommand(string.Empty, SQL);
                     q.CommandText = "UPDATE users SET Points=@Points,Rank=@Rank,Mute=@Mute WHERE Username=@Username;";
                     q.Parameters.AddWithValue("@Points", c.Value.Points);
@@ -500,7 +499,7 @@ namespace Auxilium_Server
                 {
                     byte[] data = Packer.Serialize((byte)ServerPacket.WakeUp, c.Value.UserID);
                     Broadcast(c.Value.Channel, data);
-                } 
+                }
             }
         }
 
@@ -523,7 +522,7 @@ namespace Auxilium_Server
                 motd = r.GetString("motd");
             r.Close();
 
-           
+
 
             return motd;
         }
@@ -720,7 +719,9 @@ namespace Auxilium_Server
                         if (commands.Length == 3)
                         {
                             BanUser(commands[1], int.Parse(commands[2]));
-                        } else {
+                        }
+                        else
+                        {
                             BanUser(commands[1]);
                         }
                         break;

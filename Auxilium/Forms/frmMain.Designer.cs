@@ -48,6 +48,7 @@
             this.tsmDonations = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmNews = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmAbout = new System.Windows.Forms.ToolStripMenuItem();
+            this.pauseChatToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.sStatus = new System.Windows.Forms.StatusStrip();
             this.tslChatting = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -59,6 +60,7 @@
             this.pasteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.hiddenTab1 = new HiddenTab();
             this.tpLogin = new System.Windows.Forms.TabPage();
             this.smoothLabel1 = new SmoothLabel();
@@ -121,7 +123,8 @@
             this.menuToolStripMenuItem,
             this.optionsToolStripMenuItem,
             this.pMsToolStripMenuItem,
-            this.helpToolStripMenuItem});
+            this.helpToolStripMenuItem,
+            this.pauseChatToolStripMenuItem});
             this.msMenu.Location = new System.Drawing.Point(0, 0);
             this.msMenu.Name = "msMenu";
             this.msMenu.Padding = new System.Windows.Forms.Padding(0, 2, 0, 0);
@@ -151,6 +154,7 @@
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tsmTimestamps,
             this.tsmChatNotifications,
+            this.toolStripMenuItem1,
             this.tsmSpaceMessages,
             this.tsmUserJoinEvents,
             this.writeMessagesToFileToolStripMenuItem,
@@ -202,7 +206,6 @@
             // writeMessagesToFileToolStripMenuItem
             // 
             this.writeMessagesToFileToolStripMenuItem.CheckOnClick = true;
-            this.writeMessagesToFileToolStripMenuItem.Enabled = false;
             this.writeMessagesToFileToolStripMenuItem.Name = "writeMessagesToFileToolStripMenuItem";
             this.writeMessagesToFileToolStripMenuItem.Size = new System.Drawing.Size(218, 22);
             this.writeMessagesToFileToolStripMenuItem.Text = "Write Messages To File";
@@ -271,6 +274,16 @@
             this.tsmAbout.Name = "tsmAbout";
             this.tsmAbout.Size = new System.Drawing.Size(183, 22);
             this.tsmAbout.Text = "About";
+            // 
+            // pauseChatToolStripMenuItem
+            // 
+            this.pauseChatToolStripMenuItem.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this.pauseChatToolStripMenuItem.CheckOnClick = true;
+            this.pauseChatToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("pauseChatToolStripMenuItem.Image")));
+            this.pauseChatToolStripMenuItem.Name = "pauseChatToolStripMenuItem";
+            this.pauseChatToolStripMenuItem.Size = new System.Drawing.Size(91, 22);
+            this.pauseChatToolStripMenuItem.Text = "Pause Chat";
+            this.pauseChatToolStripMenuItem.CheckedChanged += new System.EventHandler(this.pauseChatToolStripMenuItem_CheckedChanged);
             // 
             // sStatus
             // 
@@ -399,6 +412,13 @@
             this.copyToolStripMenuItem.Size = new System.Drawing.Size(96, 22);
             this.copyToolStripMenuItem.Text = "Copy";
             this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
+            // 
+            // toolStripMenuItem1
+            // 
+            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(218, 22);
+            this.toolStripMenuItem1.Text = "Play Notification Sound";
+            this.toolStripMenuItem1.CheckedChanged += new System.EventHandler(this.toolStripMenuItem1_CheckedChanged);
             // 
             // hiddenTab1
             // 
@@ -865,6 +885,8 @@
         private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
         private SmoothLabel smoothLabel1;
         private System.Windows.Forms.RichTextBox rtbChat;
+        private System.Windows.Forms.ToolStripMenuItem pauseChatToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
     }
 }
 

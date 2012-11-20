@@ -115,7 +115,7 @@ namespace Auxilium_Server.Classes
             if (PacketCount == 10)
                 return true;
 
-            if ((DateTime.Now - LastPacket).TotalSeconds == 3)
+            if ((DateTime.Now - LastPacket).TotalSeconds >= 3)
                 PacketCount = 0;
 
             LastPacket = DateTime.Now;
