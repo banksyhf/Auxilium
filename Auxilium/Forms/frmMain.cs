@@ -655,6 +655,8 @@ namespace Auxilium
             }
             else
             {
+                PauseChat = false;
+
                 lock (PauseBuffer)
                 {
                     foreach (ChatMessage m in PauseBuffer)
@@ -672,7 +674,6 @@ namespace Auxilium
                     PauseBuffer.Clear();
                 }
 
-                PauseChat = false;
                 ScrollChat();
             }
         }
@@ -757,10 +758,10 @@ namespace Auxilium
 
                 rtbChat.AppendText(text);
                 rtbChat.SelectionColor = rtbChat.ForeColor;
-            }
 
-            if (WriteMessageToFile)
-                chatLogger.Write(text);
+                if (WriteMessageToFile)
+                    chatLogger.Write(text);
+            }       
         }
 
         private void AppendLine()
@@ -773,10 +774,11 @@ namespace Auxilium
             else
             {
                 rtbChat.AppendText(Environment.NewLine);
+
+                if (WriteMessageToFile)
+                    chatLogger.WriteLine();
             }
 
-            if (WriteMessageToFile)
-                chatLogger.WriteLine();
         }
 
         private void splitContainer2_SplitterMoved(object sender, SplitterEventArgs e)
