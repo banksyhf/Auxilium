@@ -649,7 +649,11 @@ namespace Auxilium
 
         private void pauseChatToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-            if (!pauseChatToolStripMenuItem.Checked)
+            if (pauseChatToolStripMenuItem.Checked)
+            {
+                PauseChat = true;
+            }
+            else
             {
                 lock (PauseBuffer)
                 {
@@ -667,9 +671,10 @@ namespace Auxilium
 
                     PauseBuffer.Clear();
                 }
-            }
 
-            PauseChat = pauseChatToolStripMenuItem.Checked;
+                PauseChat = false;
+                ScrollChat();
+            }
         }
 
         #endregion
@@ -712,6 +717,9 @@ namespace Auxilium
 
         private void ScrollChat()
         {
+            if (PauseChat)
+                return;
+
             rtbChat.SelectionStart = rtbChat.TextLength;
             rtbChat.SelectionLength = 0;
             rtbChat.ScrollToCaret();
@@ -736,17 +744,19 @@ namespace Auxilium
 
         private void AppendText(Color c, string text)
         {
-            rtbChat.SelectionStart = rtbChat.TextLength;
-            rtbChat.SelectionLength = 0;
-            rtbChat.SelectionColor = c;
-
-            rtbChat.AppendText(text);
-            rtbChat.SelectionColor = rtbChat.ForeColor;
-
             if (PauseChat)
             {
                 lock (PauseBuffer)
                     PauseBuffer.Add(new ChatMessage(c, text));
+            }
+            else
+            {
+                rtbChat.SelectionStart = rtbChat.TextLength;
+                rtbChat.SelectionLength = 0;
+                rtbChat.SelectionColor = c;
+
+                rtbChat.AppendText(text);
+                rtbChat.SelectionColor = rtbChat.ForeColor;
             }
 
             if (WriteMessageToFile)
@@ -755,12 +765,14 @@ namespace Auxilium
 
         private void AppendLine()
         {
-            rtbChat.AppendText(Environment.NewLine);
-
             if (PauseChat)
             {
                 lock (PauseBuffer)
-                    PauseBuffer.Add(new ChatMessage(Color.Empty, Environment.NewLine));
+                    PauseBuffer.Add(new ChatMessage(Color.Empty, string.Empty));
+            }
+            else
+            {
+                rtbChat.AppendText(Environment.NewLine);
             }
 
             if (WriteMessageToFile)
