@@ -37,6 +37,7 @@
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmTimestamps = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmChatNotifications = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmSpaceMessages = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmUserJoinEvents = new System.Windows.Forms.ToolStripMenuItem();
             this.writeMessagesToFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -60,7 +61,6 @@
             this.pasteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.hiddenTab1 = new HiddenTab();
             this.tpLogin = new System.Windows.Forms.TabPage();
             this.smoothLabel1 = new SmoothLabel();
@@ -184,6 +184,14 @@
             this.tsmChatNotifications.Size = new System.Drawing.Size(218, 22);
             this.tsmChatNotifications.Text = "Show Chat Notifications";
             this.tsmChatNotifications.CheckedChanged += new System.EventHandler(this.tsmChatNotifications_CheckedChanged);
+            // 
+            // toolStripMenuItem1
+            // 
+            this.toolStripMenuItem1.CheckOnClick = true;
+            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
+            this.toolStripMenuItem1.Size = new System.Drawing.Size(218, 22);
+            this.toolStripMenuItem1.Text = "Play Notification Sound";
+            this.toolStripMenuItem1.CheckedChanged += new System.EventHandler(this.toolStripMenuItem1_CheckedChanged);
             // 
             // tsmSpaceMessages
             // 
@@ -412,13 +420,6 @@
             this.copyToolStripMenuItem.Size = new System.Drawing.Size(96, 22);
             this.copyToolStripMenuItem.Text = "Copy";
             this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
-            // 
-            // toolStripMenuItem1
-            // 
-            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(218, 22);
-            this.toolStripMenuItem1.Text = "Play Notification Sound";
-            this.toolStripMenuItem1.CheckedChanged += new System.EventHandler(this.toolStripMenuItem1_CheckedChanged);
             // 
             // hiddenTab1
             // 

@@ -621,15 +621,9 @@ namespace Auxilium
             ShowJoinLeaveEvents = tsmUserJoinEvents.Checked;
         }
 
-
         private void writeMessagesToFileToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
             WriteMessageToFile = writeMessagesToFileToolStripMenuItem.Checked;
-        }
-
-        private void showTimestampsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            ShowJoinLeaveEvents = tsmUserJoinEvents.Checked;
         }
 
         private void changeFontToolStripMenuItem_Click(object sender, EventArgs e)
