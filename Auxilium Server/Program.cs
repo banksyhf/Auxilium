@@ -448,8 +448,10 @@ namespace Auxilium_Server
             if (u == null)
                 return;
 
+            string[] shit = { "hi", "nigger" };
+
             byte[] data = Packer.Serialize((byte)ServerPacket.PM, c.Value.Username, message, subject);
-            c.Send(data);
+            u.Send(data);
         }
 
         static void HandleChatPacket(Client c, string message)

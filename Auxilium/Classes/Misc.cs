@@ -71,42 +71,42 @@ namespace Auxilium
         [DllImport("user32.dll", EntryPoint = "GetForegroundWindow")]
         public static extern IntPtr GetForegroundWindow();
 
-        [DllImport("user32.dll", EntryPoint="SetForegroundWindow")]
-        public static extern int SetForegroundWindow(IntPtr handle);
-
         [DllImport("user32.dll", EntryPoint = "FlashWindow")]
         public static extern bool FlashWindow(IntPtr handle, bool invert);
+
+        //[DllImport("user32.dll", EntryPoint="SetForegroundWindow")]
+        //public static extern int SetForegroundWindow(IntPtr handle);
 
         //[DllImport("user32.dll", EntryPoint = "GetWindowLong")]
         //public static extern int GetWindowLong(IntPtr handle, int index);
 
-        [DllImport("user32.dll", EntryPoint = "GetScrollInfo")]
-        private static extern bool GetScrollInfo(IntPtr handle, int bar, ref SCROLLINFO info);
+        //[DllImport("user32.dll", EntryPoint = "GetScrollInfo")]
+        //private static extern bool GetScrollInfo(IntPtr handle, int bar, ref SCROLLINFO info);
 
         //[DllImport("user32.dll", EntryPoint = "SetScrollInfo")]
         //private static extern int SetScrollInfo(IntPtr handle, int bar, ref SCROLLINFO info, bool redraw);
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct SCROLLINFO
-        {
-            public uint size;
-            public uint mask;
-            public int min;
-            public int max;
-            public int page;
-            public int position;
-            public int trackPosition;
-        }
+        //[StructLayout(LayoutKind.Sequential)]
+        //public struct SCROLLINFO
+        //{
+        //    public uint size;
+        //    public uint mask;
+        //    public int min;
+        //    public int max;
+        //    public int page;
+        //    public int position;
+        //    public int trackPosition;
+        //}
 
-        public static SCROLLINFO VScroll;
-        public static bool GetScroll(IntPtr handle)
-        {
-            VScroll = new SCROLLINFO();
-            VScroll.size = (uint)Marshal.SizeOf(VScroll);
-            VScroll.mask = 7;
+        //public static SCROLLINFO VScroll;
+        //public static bool GetScroll(IntPtr handle)
+        //{
+        //    VScroll = new SCROLLINFO();
+        //    VScroll.size = (uint)Marshal.SizeOf(VScroll);
+        //    VScroll.mask = 7;
 
-            return GetScrollInfo(handle, 1, ref VScroll);
-        }
+        //    return GetScrollInfo(handle, 1, ref VScroll);
+        //}
 
         //public static void SetScroll(IntPtr handle, int position)
         //{
@@ -179,6 +179,17 @@ namespace Auxilium
             Name = name;
             Rank = rank;
             Idle = idle;
+        }
+    }
+    struct ChatMessage
+    {
+        public Color Color;
+        public string Value;
+
+        public ChatMessage(Color color, string value)
+        {
+            Color = color;
+            Value = value;
         }
     }
 }

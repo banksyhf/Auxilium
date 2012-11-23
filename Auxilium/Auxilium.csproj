@@ -49,8 +49,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>
-    </ApplicationIcon>
+    <ApplicationIcon>icon-powerful-framework %281%29.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.VisualBasic" />
@@ -59,7 +58,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Classes\Auxilium.cs" />
+    <Compile Include="Classes\Misc.cs" />
     <Compile Include="Classes\Controls.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -131,6 +130,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Notify.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="icon-powerful-framework %281%29.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -299,5 +299,4 @@ namespace Auxilium.Classes
             catch { }
         }
     }
-
 }

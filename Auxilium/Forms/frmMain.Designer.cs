@@ -59,8 +59,11 @@
             this.ilUsers = new System.Windows.Forms.ImageList(this.components);
             this.cmsClipboard = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.pasteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.cmsChatClipboard = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.cmsNotify = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmTray = new System.Windows.Forms.ToolStripMenuItem();
             this.hiddenTab1 = new HiddenTab();
             this.tpLogin = new System.Windows.Forms.TabPage();
             this.smoothLabel1 = new SmoothLabel();
@@ -93,7 +96,8 @@
             this.sStatus.SuspendLayout();
             this.cmsUsers.SuspendLayout();
             this.cmsClipboard.SuspendLayout();
-            this.contextMenuStrip1.SuspendLayout();
+            this.cmsChatClipboard.SuspendLayout();
+            this.cmsNotify.SuspendLayout();
             this.hiddenTab1.SuspendLayout();
             this.tpLogin.SuspendLayout();
             this.tpRegister.SuspendLayout();
@@ -109,10 +113,12 @@
             // 
             // niAux
             // 
+            this.niAux.ContextMenuStrip = this.cmsNotify;
             this.niAux.Icon = ((System.Drawing.Icon)(resources.GetObject("niAux.Icon")));
             this.niAux.Text = "Auxilium";
             this.niAux.Visible = true;
             this.niAux.BalloonTipClicked += new System.EventHandler(this.niChat_BalloonTipClicked);
+            this.niAux.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.niAux_MouseDoubleClick);
             // 
             // msMenu
             // 
@@ -154,6 +160,7 @@
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tsmTimestamps,
             this.tsmChatNotifications,
+            this.tsmTray,
             this.toolStripMenuItem1,
             this.tsmSpaceMessages,
             this.tsmUserJoinEvents,
@@ -183,7 +190,7 @@
             this.tsmChatNotifications.Name = "tsmChatNotifications";
             this.tsmChatNotifications.Size = new System.Drawing.Size(218, 22);
             this.tsmChatNotifications.Text = "Show Chat Notifications";
-            this.tsmChatNotifications.CheckedChanged += new System.EventHandler(this.tsmChatNotifications_CheckedChanged);
+            this.tsmChatNotifications.Click += new System.EventHandler(this.tsmChatNotifications_CheckedChanged);
             // 
             // toolStripMenuItem1
             // 
@@ -397,29 +404,61 @@
             this.cmsClipboard.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.pasteToolStripMenuItem});
             this.cmsClipboard.Name = "cmsClipboard";
-            this.cmsClipboard.Size = new System.Drawing.Size(100, 26);
+            this.cmsClipboard.ShowImageMargin = false;
+            this.cmsClipboard.Size = new System.Drawing.Size(75, 26);
             // 
             // pasteToolStripMenuItem
             // 
+            this.pasteToolStripMenuItem.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this.pasteToolStripMenuItem.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.pasteToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             this.pasteToolStripMenuItem.Name = "pasteToolStripMenuItem";
-            this.pasteToolStripMenuItem.Size = new System.Drawing.Size(99, 22);
+            this.pasteToolStripMenuItem.Size = new System.Drawing.Size(74, 22);
             this.pasteToolStripMenuItem.Text = "Paste";
             this.pasteToolStripMenuItem.Click += new System.EventHandler(this.pasteToolStripMenuItem_Click);
             // 
-            // contextMenuStrip1
+            // cmsChatClipboard
             // 
-            this.contextMenuStrip1.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.cmsChatClipboard.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cmsChatClipboard.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.copyToolStripMenuItem});
-            this.contextMenuStrip1.Name = "contextMenuStrip1";
-            this.contextMenuStrip1.Size = new System.Drawing.Size(97, 26);
+            this.cmsChatClipboard.Name = "contextMenuStrip1";
+            this.cmsChatClipboard.ShowImageMargin = false;
+            this.cmsChatClipboard.Size = new System.Drawing.Size(72, 26);
             // 
             // copyToolStripMenuItem
             // 
             this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
-            this.copyToolStripMenuItem.Size = new System.Drawing.Size(96, 22);
+            this.copyToolStripMenuItem.Size = new System.Drawing.Size(71, 22);
             this.copyToolStripMenuItem.Text = "Copy";
             this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
+            // 
+            // cmsNotify
+            // 
+            this.cmsNotify.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cmsNotify.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem2});
+            this.cmsNotify.Name = "cmsClipboard";
+            this.cmsNotify.ShowImageMargin = false;
+            this.cmsNotify.Size = new System.Drawing.Size(66, 26);
+            // 
+            // toolStripMenuItem2
+            // 
+            this.toolStripMenuItem2.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this.toolStripMenuItem2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripMenuItem2.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            this.toolStripMenuItem2.Name = "toolStripMenuItem2";
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(65, 22);
+            this.toolStripMenuItem2.Text = "Exit";
+            this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
+            // 
+            // tsmTray
+            // 
+            this.tsmTray.CheckOnClick = true;
+            this.tsmTray.Name = "tsmTray";
+            this.tsmTray.Size = new System.Drawing.Size(218, 22);
+            this.tsmTray.Text = "Minimize To Tray";
+            this.tsmTray.Click += new System.EventHandler(this.tsmTray_Click);
             // 
             // hiddenTab1
             // 
@@ -701,7 +740,7 @@
             // 
             this.rtbChat.AcceptsTab = true;
             this.rtbChat.BackColor = System.Drawing.Color.White;
-            this.rtbChat.ContextMenuStrip = this.contextMenuStrip1;
+            this.rtbChat.ContextMenuStrip = this.cmsChatClipboard;
             this.rtbChat.Dock = System.Windows.Forms.DockStyle.Fill;
             this.rtbChat.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.rtbChat.HideSelection = false;
@@ -808,7 +847,8 @@
             this.sStatus.PerformLayout();
             this.cmsUsers.ResumeLayout(false);
             this.cmsClipboard.ResumeLayout(false);
-            this.contextMenuStrip1.ResumeLayout(false);
+            this.cmsChatClipboard.ResumeLayout(false);
+            this.cmsNotify.ResumeLayout(false);
             this.hiddenTab1.ResumeLayout(false);
             this.tpLogin.ResumeLayout(false);
             this.tpLogin.PerformLayout();
@@ -864,7 +904,6 @@
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.ToolStripMenuItem menuToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tsmSignOut;
-        private System.Windows.Forms.ToolStripMenuItem tsmChatNotifications;
         private System.Windows.Forms.ToolStripMenuItem writeMessagesToFileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem pMsToolStripMenuItem;
         private System.Windows.Forms.ContextMenuStrip cmsUsers;
@@ -882,12 +921,16 @@
         private System.Windows.Forms.ToolStripMenuItem tsmNews;
         private System.Windows.Forms.ToolStripMenuItem tsmSuggestions;
         private System.Windows.Forms.ToolStripMenuItem tsmAbout;
-        private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
+        private System.Windows.Forms.ContextMenuStrip cmsChatClipboard;
         private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
         private SmoothLabel smoothLabel1;
         private System.Windows.Forms.RichTextBox rtbChat;
-        private System.Windows.Forms.ToolStripMenuItem pauseChatToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem pauseChatToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem tsmChatNotifications;
+        private System.Windows.Forms.ContextMenuStrip cmsNotify;
+        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
+        private System.Windows.Forms.ToolStripMenuItem tsmTray;
     }
 }
 

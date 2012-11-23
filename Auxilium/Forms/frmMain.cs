@@ -44,6 +44,7 @@ namespace Auxilium
         private bool AudibleNotification = false;
         private bool ShowJoinLeaveEvents = false;
         private bool WriteMessageToFile = false;
+        private bool MinimizeToTray = false;
 
         private bool PauseChat = false;
         private List<ChatMessage> PauseBuffer = new List<ChatMessage>();
@@ -378,7 +379,7 @@ namespace Auxilium
 
             AppendChat(GetRankColor(user.Rank), Color.Black, user.Name, message);
 
-            if (ShowChatNotifications && !IsForegroundWindow)
+            if (ShowChatNotifications && !IsForegroundWindow && !PauseChat)
             {
                 Functions.FlashWindow(this.Handle, true);
                 niAux.ShowBalloonTip(100, user.Name, message, ToolTipIcon.Info);
@@ -496,6 +497,53 @@ namespace Auxilium
                 return (this.Handle == Functions.GetForegroundWindow());
             }
         }
+        
+        private void UpdateUserList()
+        {
+            lvUsers.BeginUpdate();
+            lvUsers.Items.Clear();
+
+            foreach (KeyValuePair<ushort, User> pair in Users.OrderBy(pair => pair.Value, new UserComparer()))
+            {
+                ListViewItem li = new ListViewItem(pair.Value.Name)
+                {
+                    Name = pair.Key.ToString(),
+                    ImageIndex = pair.Value.Rank
+                };
+
+                if (pair.Value.Idle)
+                {
+                    li.ForeColor = SystemColors.ControlDark;
+                }
+
+                lvUsers.Items.Add(li);
+            }
+
+            lvUsers.EndUpdate();
+
+            tslUsersOnline.Text = "Users Online: " + lvUsers.Items.Count;
+        }
+
+        private Color GetRankColor(byte rank)
+        {
+            switch (rank)
+            {
+                case (byte)SpecialRank.Admin:
+                    return Color.Red;
+                default:
+                    return Color.Blue;
+            }
+        }
+
+        private void LogClearEvent()
+        {
+            if (!WriteMessageToFile)
+                return;
+
+            chatLogger.WriteLine();
+            chatLogger.Write("**** Chat cleared at: " + DateTime.UtcNow.ToLongTimeString() + " ****");
+            chatLogger.WriteLine();
+        }
         #endregion
 
         #region " UI Events "
@@ -592,6 +640,29 @@ namespace Auxilium
             Process.Start("http://imminentmethods.info/auxilium/");
         }
 
+        private void copyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            rtbChat.Copy();
+        }
+
+        private void niAux_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            WindowState = FormWindowState.Normal;
+            this.ShowInTaskbar = true;
+        }
+
+        private void toolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+            niAux.Visible = false;
+            niAux.Dispose();
+            Environment.Exit(0);
+        }
+
+        private void tsmTray_Click(object sender, EventArgs e)
+        {
+            MinimizeToTray = tsmTray.Checked;
+        }
+
         #endregion
 
         #region " Options "
@@ -652,6 +723,7 @@ namespace Auxilium
             if (pauseChatToolStripMenuItem.Checked)
             {
                 PauseChat = true;
+                pauseChatToolStripMenuItem.Text = "Unpause chat";
             }
             else
             {
@@ -675,6 +747,7 @@ namespace Auxilium
                 }
 
                 ScrollChat();
+                pauseChatToolStripMenuItem.Text = "Pause chat";
             }
         }
 
@@ -861,6 +934,10 @@ namespace Auxilium
         private void frmMain_Resize(object sender, EventArgs e)
         {
             lvUsers.Columns[0].Width = lvUsers.Width - 5;
+            if (WindowState == FormWindowState.Minimized && MinimizeToTray)
+            {
+                this.ShowInTaskbar = false;
+            }
         }
 
         private void frmMain_Activated(object sender, EventArgs e)
@@ -881,70 +958,5 @@ namespace Auxilium
         }
 
         #endregion
-
-        private void UpdateUserList()
-        {
-            lvUsers.BeginUpdate();
-            lvUsers.Items.Clear();
-
-            foreach (KeyValuePair<ushort, User> pair in Users.OrderBy(pair => pair.Value, new UserComparer()))
-            {
-                ListViewItem li = new ListViewItem(pair.Value.Name)
-                {
-                    Name = pair.Key.ToString(),
-                    ImageIndex = pair.Value.Rank
-                };
-
-                if (pair.Value.Idle)
-                {
-                    li.ForeColor = SystemColors.ControlDark;
-                }
-
-                lvUsers.Items.Add(li);
-            }
-
-            lvUsers.EndUpdate();
-
-            tslUsersOnline.Text = "Users Online: " + lvUsers.Items.Count;
-        }
-
-        private void copyToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            rtbChat.Copy();
-        }
-
-        private Color GetRankColor(byte rank)
-        {
-            switch (rank)
-            {
-                case (byte)SpecialRank.Admin:
-                    return Color.Red;
-                default:
-                    return Color.Blue;
-            }
-        }
-
-        private void LogClearEvent()
-        {
-            if (!WriteMessageToFile)
-                return;
-
-            chatLogger.WriteLine();
-            chatLogger.Write("**** Chat cleared at: " + DateTime.UtcNow.ToLongTimeString() + " ****");
-            chatLogger.WriteLine();
-        }
-
-        struct ChatMessage
-        {
-            public Color Color;
-            public string Value;
-
-            public ChatMessage(Color color, string value)
-            {
-                Color = color;
-                Value = value;
-            }
-        }
-
     }
 }
