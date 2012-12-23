@@ -22,6 +22,8 @@ namespace Auxilium_Server
 
         static string[] Channels;
 
+        static List<ChatMessage> RecentMessages = new List<ChatMessage>();
+
         static string MOTD;
 
         static int Reconnect;
@@ -33,8 +35,7 @@ namespace Auxilium_Server
 
         static System.Threading.Timer ChatMonitor;
 
-        //There needs to be more than one SQL connection
-        //Otherwise the entire DB can get locked up.
+        //TODO: Have a pool of SQL Connections to randomly select from when querying the DB.
         static MySqlConnection SQL;
 
         #endregion
@@ -47,7 +48,7 @@ namespace Auxilium_Server
             SQL.ConnectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
             SQL.Open();
 
-            Channels = new string[] { "Lounge", "VB.NET", "C#" };
+            Channels = new string[] { "Lounge" };
 
             MOTD = GetMOTD();
 
@@ -267,6 +268,9 @@ namespace Auxilium_Server
                         case ClientPacket.KeepAlive:
                             HandleKeepAlivePacket(c);
                             break;
+                        case ClientPacket.News:
+                            HandleNewsPacket(c);
+                            break;
                     }
                 }
                 else
@@ -428,6 +432,11 @@ namespace Auxilium_Server
 
                 c.Value.Channel = channel;
                 SendUserListUpdates(c);
+
+                foreach (ChatMessage cm in RecentMessages)
+                {
+
+                }
             }
             else
             {
@@ -447,8 +456,6 @@ namespace Auxilium_Server
             Client u = ClientFromUsername(username);
             if (u == null)
                 return;
-
-            string[] shit = { "hi", "nigger" };
 
             byte[] data = Packer.Serialize((byte)ServerPacket.PM, c.Value.Username, message, subject);
             u.Send(data);
@@ -474,6 +481,12 @@ namespace Auxilium_Server
 
                 c.Value.AddPoints(5); //AWARD 5 POINTS FOR ACTIVITY***
 
+                if (RecentMessages.Count == 10)
+                    RecentMessages.RemoveAt(0);
+
+                ChatMessage msg = new ChatMessage(DateTime.UtcNow.ToString(), message, c.Value.Username, c.Value.Rank);
+                RecentMessages.Add(msg);
+
                 byte[] data = Packer.Serialize((byte)ServerPacket.Chatter, c.Value.UserID, message);
                 BroadcastExclusive(c.Value.UserID, c.Value.Channel, data);
             }
@@ -482,6 +495,12 @@ namespace Auxilium_Server
         static void HandleKeepAlivePacket(Client c)
         {
             byte[] data = Packer.Serialize((byte)ServerPacket.KeepAlive);
+            c.Send(data);
+        }
+
+        static void HandleNewsPacket(Client c)
+        {
+            byte[] data = Packer.Serialize((byte)ServerPacket.News, GetNews());
             c.Send(data);
         }
 
@@ -509,6 +528,11 @@ namespace Auxilium_Server
         {
             SendChannelList(c);
             SendUserListUpdates(c);
+            foreach (ChatMessage cm in RecentMessages)
+            {
+                byte[] data = Packer.Serialize((byte)ServerPacket.RecentMessages, cm.Time, cm.Username, cm.Value, cm.Rank);
+                c.Send(data);
+            }
         }
 
         static string GetMOTD()
@@ -521,12 +545,26 @@ namespace Auxilium_Server
             MySqlDataReader r = q.ExecuteReader();
             bool available = r.Read();
             if (available)
-                motd = r.GetString("motd");
+                motd = r.GetString("motd").Replace("\n", Environment.NewLine); ;
             r.Close();
 
-
-
             return motd;
+        }
+
+        static string GetNews()
+        {
+            string news = string.Empty;
+
+            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+            q.CommandText = "SELECT news FROM settings;";
+
+            MySqlDataReader r = q.ExecuteReader();
+            bool available = r.Read();
+            if (available)
+                news = r.GetString("news").Replace("\n", Environment.NewLine);
+            r.Close();
+
+            return news;
         }
 
         static void SendUserListUpdates(Client c)
@@ -608,11 +646,11 @@ namespace Auxilium_Server
 
         static bool IsValidData(string data)
         {
-            for (int i = 0; i < data.Length; i++)
+            /*for (int i = 0; i < data.Length; i++)
             {
                 if (!(data[i] == 10 || data[i] == 13 || data[i] > 31 && data[i] < 127))
                     return false;
-            }
+            }*/
 
             return true;
         }
@@ -789,7 +827,9 @@ namespace Auxilium_Server
             BanList,
             PM,
             KeepAlive,
-            WakeUp
+            WakeUp,
+            RecentMessages,
+            News
         }
 
         enum ClientPacket : byte
@@ -799,7 +839,24 @@ namespace Auxilium_Server
             Channel,
             ChatMessage,
             PM,
-            KeepAlive
+            KeepAlive,
+            News
+        }
+
+        class ChatMessage
+        {
+            public string Time;
+            public string Username;
+            public string Value;
+            public byte Rank;
+
+            public ChatMessage(string time, string value, string username, byte rank)
+            {
+                Time = time;
+                Value = value;
+                Username = username;
+                Rank = rank;
+            }
         }
 
         #endregion

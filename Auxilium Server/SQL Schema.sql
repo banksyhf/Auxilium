@@ -6,11 +6,12 @@ CREATE TABLE IF NOT EXISTS `ipbans` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 CREATE TABLE IF NOT EXISTS `settings` (
-  `motd` text NOT NULL
+  `motd` text NOT NULL,
+  `news` text NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
-INSERT INTO `settings` (`motd`) VALUES
-('User DB has been cleared. You must register again.');
+INSERT INTO `settings` (`motd`, `news`) VALUES
+('', 'testing\ntest');
 
 CREATE TABLE IF NOT EXISTS `users` (
   `Username` varchar(16) NOT NULL,

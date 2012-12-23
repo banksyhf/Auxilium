@@ -150,7 +150,9 @@ namespace Auxilium
         BanList,
         PM,
         KeepAlive,
-        WakeUp
+        WakeUp,
+        RecentMessages,
+        News
     }
 
     public enum ClientPacket : byte
@@ -160,7 +162,8 @@ namespace Auxilium
         Channel,
         ChatMessage,
         PM,
-        KeepAlive
+        KeepAlive,
+        News
     }
 
     public enum SpecialRank : byte

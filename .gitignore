@@ -11,14 +11,12 @@
 *.suo
 *.user
 *.sln.docstates
-*.ico
 *.exe
 
 # Build results
 
 [Oo]bj/
 [Bb]in/
-*.ico
 *_i.c
 *_p.c
 *.ilk

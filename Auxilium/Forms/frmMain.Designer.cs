@@ -31,24 +31,25 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.niAux = new System.Windows.Forms.NotifyIcon(this.components);
+            this.cmsNotify = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
             this.msMenu = new System.Windows.Forms.MenuStrip();
             this.menuToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmSignOut = new System.Windows.Forms.ToolStripMenuItem();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmTimestamps = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmChatNotifications = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmTray = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmAudibleNotification = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmSpaceMessages = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmUserJoinEvents = new System.Windows.Forms.ToolStripMenuItem();
-            this.writeMessagesToFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmWriteMessages = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.changeFontToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pMsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmSuggestions = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmDonations = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmNews = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmAbout = new System.Windows.Forms.ToolStripMenuItem();
             this.pauseChatToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.sStatus = new System.Windows.Forms.StatusStrip();
             this.tslChatting = new System.Windows.Forms.ToolStripStatusLabel();
@@ -61,9 +62,7 @@
             this.pasteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cmsChatClipboard = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.cmsNotify = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmTray = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmGetSource = new System.Windows.Forms.ToolStripMenuItem();
             this.hiddenTab1 = new HiddenTab();
             this.tpLogin = new System.Windows.Forms.TabPage();
             this.smoothLabel1 = new SmoothLabel();
@@ -92,19 +91,21 @@
             this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.tpReconnect = new System.Windows.Forms.TabPage();
             this.button2 = new System.Windows.Forms.Button();
+            this.cmsNotify.SuspendLayout();
             this.msMenu.SuspendLayout();
             this.sStatus.SuspendLayout();
             this.cmsUsers.SuspendLayout();
             this.cmsClipboard.SuspendLayout();
             this.cmsChatClipboard.SuspendLayout();
-            this.cmsNotify.SuspendLayout();
             this.hiddenTab1.SuspendLayout();
             this.tpLogin.SuspendLayout();
             this.tpRegister.SuspendLayout();
             this.tpChat.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).BeginInit();
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
             this.splitContainer2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
@@ -120,6 +121,25 @@
             this.niAux.BalloonTipClicked += new System.EventHandler(this.niChat_BalloonTipClicked);
             this.niAux.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.niAux_MouseDoubleClick);
             // 
+            // cmsNotify
+            // 
+            this.cmsNotify.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cmsNotify.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMenuItem2});
+            this.cmsNotify.Name = "cmsClipboard";
+            this.cmsNotify.ShowImageMargin = false;
+            this.cmsNotify.Size = new System.Drawing.Size(66, 26);
+            // 
+            // toolStripMenuItem2
+            // 
+            this.toolStripMenuItem2.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
+            this.toolStripMenuItem2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripMenuItem2.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
+            this.toolStripMenuItem2.Name = "toolStripMenuItem2";
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(65, 22);
+            this.toolStripMenuItem2.Text = "Exit";
+            this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
+            // 
             // msMenu
             // 
             this.msMenu.BackColor = System.Drawing.Color.Transparent;
@@ -130,7 +150,8 @@
             this.optionsToolStripMenuItem,
             this.pMsToolStripMenuItem,
             this.helpToolStripMenuItem,
-            this.pauseChatToolStripMenuItem});
+            this.pauseChatToolStripMenuItem,
+            this.tsmGetSource});
             this.msMenu.Location = new System.Drawing.Point(0, 0);
             this.msMenu.Name = "msMenu";
             this.msMenu.Padding = new System.Windows.Forms.Padding(0, 2, 0, 0);
@@ -161,10 +182,10 @@
             this.tsmTimestamps,
             this.tsmChatNotifications,
             this.tsmTray,
-            this.toolStripMenuItem1,
+            this.tsmAudibleNotification,
             this.tsmSpaceMessages,
             this.tsmUserJoinEvents,
-            this.writeMessagesToFileToolStripMenuItem,
+            this.tsmWriteMessages,
             this.toolStripSeparator1,
             this.changeFontToolStripMenuItem});
             this.optionsToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("optionsToolStripMenuItem.Image")));
@@ -192,13 +213,21 @@
             this.tsmChatNotifications.Text = "Show Chat Notifications";
             this.tsmChatNotifications.Click += new System.EventHandler(this.tsmChatNotifications_CheckedChanged);
             // 
-            // toolStripMenuItem1
+            // tsmTray
             // 
-            this.toolStripMenuItem1.CheckOnClick = true;
-            this.toolStripMenuItem1.Name = "toolStripMenuItem1";
-            this.toolStripMenuItem1.Size = new System.Drawing.Size(218, 22);
-            this.toolStripMenuItem1.Text = "Play Notification Sound";
-            this.toolStripMenuItem1.CheckedChanged += new System.EventHandler(this.toolStripMenuItem1_CheckedChanged);
+            this.tsmTray.CheckOnClick = true;
+            this.tsmTray.Name = "tsmTray";
+            this.tsmTray.Size = new System.Drawing.Size(218, 22);
+            this.tsmTray.Text = "Minimize To Tray";
+            this.tsmTray.CheckedChanged += new System.EventHandler(this.tsmTray_CheckedChanged);
+            // 
+            // tsmAudibleNotification
+            // 
+            this.tsmAudibleNotification.CheckOnClick = true;
+            this.tsmAudibleNotification.Name = "tsmAudibleNotification";
+            this.tsmAudibleNotification.Size = new System.Drawing.Size(218, 22);
+            this.tsmAudibleNotification.Text = "Play Notification Sound";
+            this.tsmAudibleNotification.CheckedChanged += new System.EventHandler(this.toolStripMenuItem1_CheckedChanged);
             // 
             // tsmSpaceMessages
             // 
@@ -218,13 +247,13 @@
             this.tsmUserJoinEvents.Text = "Show User Join/Leave Events";
             this.tsmUserJoinEvents.CheckedChanged += new System.EventHandler(this.tsmUserJoinEvents_CheckedChanged);
             // 
-            // writeMessagesToFileToolStripMenuItem
+            // tsmWriteMessages
             // 
-            this.writeMessagesToFileToolStripMenuItem.CheckOnClick = true;
-            this.writeMessagesToFileToolStripMenuItem.Name = "writeMessagesToFileToolStripMenuItem";
-            this.writeMessagesToFileToolStripMenuItem.Size = new System.Drawing.Size(218, 22);
-            this.writeMessagesToFileToolStripMenuItem.Text = "Write Messages To File";
-            this.writeMessagesToFileToolStripMenuItem.CheckedChanged += new System.EventHandler(this.writeMessagesToFileToolStripMenuItem_CheckedChanged);
+            this.tsmWriteMessages.CheckOnClick = true;
+            this.tsmWriteMessages.Name = "tsmWriteMessages";
+            this.tsmWriteMessages.Size = new System.Drawing.Size(218, 22);
+            this.tsmWriteMessages.Text = "Write Messages To File";
+            this.tsmWriteMessages.CheckedChanged += new System.EventHandler(this.writeMessagesToFileToolStripMenuItem_CheckedChanged);
             // 
             // toolStripSeparator1
             // 
@@ -249,22 +278,12 @@
             // helpToolStripMenuItem
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.tsmSuggestions,
-            this.tsmDonations,
             this.tsmNews,
-            this.tsmAbout});
+            this.tsmDonations});
             this.helpToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("helpToolStripMenuItem.Image")));
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(56, 22);
             this.helpToolStripMenuItem.Text = "Help";
-            // 
-            // tsmSuggestions
-            // 
-            this.tsmSuggestions.Image = ((System.Drawing.Image)(resources.GetObject("tsmSuggestions.Image")));
-            this.tsmSuggestions.Name = "tsmSuggestions";
-            this.tsmSuggestions.Size = new System.Drawing.Size(183, 22);
-            this.tsmSuggestions.Text = "Suggestions";
-            this.tsmSuggestions.Click += new System.EventHandler(this.tsmSuggestions_Click);
             // 
             // tsmDonations
             // 
@@ -276,19 +295,11 @@
             // 
             // tsmNews
             // 
-            this.tsmNews.Enabled = false;
             this.tsmNews.Image = ((System.Drawing.Image)(resources.GetObject("tsmNews.Image")));
             this.tsmNews.Name = "tsmNews";
             this.tsmNews.Size = new System.Drawing.Size(183, 22);
             this.tsmNews.Text = "News";
-            // 
-            // tsmAbout
-            // 
-            this.tsmAbout.Enabled = false;
-            this.tsmAbout.Image = ((System.Drawing.Image)(resources.GetObject("tsmAbout.Image")));
-            this.tsmAbout.Name = "tsmAbout";
-            this.tsmAbout.Size = new System.Drawing.Size(183, 22);
-            this.tsmAbout.Text = "About";
+            this.tsmNews.Click += new System.EventHandler(this.tsmNews_Click);
             // 
             // pauseChatToolStripMenuItem
             // 
@@ -433,32 +444,13 @@
             this.copyToolStripMenuItem.Text = "Copy";
             this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
             // 
-            // cmsNotify
+            // tsmGetSource
             // 
-            this.cmsNotify.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cmsNotify.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripMenuItem2});
-            this.cmsNotify.Name = "cmsClipboard";
-            this.cmsNotify.ShowImageMargin = false;
-            this.cmsNotify.Size = new System.Drawing.Size(66, 26);
-            // 
-            // toolStripMenuItem2
-            // 
-            this.toolStripMenuItem2.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
-            this.toolStripMenuItem2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripMenuItem2.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
-            this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(65, 22);
-            this.toolStripMenuItem2.Text = "Exit";
-            this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
-            // 
-            // tsmTray
-            // 
-            this.tsmTray.CheckOnClick = true;
-            this.tsmTray.Name = "tsmTray";
-            this.tsmTray.Size = new System.Drawing.Size(218, 22);
-            this.tsmTray.Text = "Minimize To Tray";
-            this.tsmTray.Click += new System.EventHandler(this.tsmTray_Click);
+            this.tsmGetSource.Image = ((System.Drawing.Image)(resources.GetObject("tsmGetSource.Image")));
+            this.tsmGetSource.Name = "tsmGetSource";
+            this.tsmGetSource.Size = new System.Drawing.Size(68, 22);
+            this.tsmGetSource.Text = "Source";
+            this.tsmGetSource.Click += new System.EventHandler(this.tsmGetSource_Click);
             // 
             // hiddenTab1
             // 
@@ -841,6 +833,7 @@
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.frmMain_FormClosed);
             this.Shown += new System.EventHandler(this.frmMain_Shown);
             this.Resize += new System.EventHandler(this.frmMain_Resize);
+            this.cmsNotify.ResumeLayout(false);
             this.msMenu.ResumeLayout(false);
             this.msMenu.PerformLayout();
             this.sStatus.ResumeLayout(false);
@@ -848,7 +841,6 @@
             this.cmsUsers.ResumeLayout(false);
             this.cmsClipboard.ResumeLayout(false);
             this.cmsChatClipboard.ResumeLayout(false);
-            this.cmsNotify.ResumeLayout(false);
             this.hiddenTab1.ResumeLayout(false);
             this.tpLogin.ResumeLayout(false);
             this.tpLogin.PerformLayout();
@@ -857,9 +849,11 @@
             this.tpChat.ResumeLayout(false);
             this.splitContainer2.Panel1.ResumeLayout(false);
             this.splitContainer2.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).EndInit();
             this.splitContainer2.ResumeLayout(false);
             this.splitContainer1.Panel1.ResumeLayout(false);
             this.splitContainer1.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).EndInit();
             this.splitContainer1.ResumeLayout(false);
             this.tpReconnect.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -904,7 +898,7 @@
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.ToolStripMenuItem menuToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tsmSignOut;
-        private System.Windows.Forms.ToolStripMenuItem writeMessagesToFileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem tsmWriteMessages;
         private System.Windows.Forms.ToolStripMenuItem pMsToolStripMenuItem;
         private System.Windows.Forms.ContextMenuStrip cmsUsers;
         private System.Windows.Forms.ToolStripMenuItem sendPMToolStripMenuItem;
@@ -919,18 +913,17 @@
         private System.Windows.Forms.ToolStripMenuItem helpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tsmDonations;
         private System.Windows.Forms.ToolStripMenuItem tsmNews;
-        private System.Windows.Forms.ToolStripMenuItem tsmSuggestions;
-        private System.Windows.Forms.ToolStripMenuItem tsmAbout;
         private System.Windows.Forms.ContextMenuStrip cmsChatClipboard;
         private System.Windows.Forms.ToolStripMenuItem copyToolStripMenuItem;
         private SmoothLabel smoothLabel1;
         private System.Windows.Forms.RichTextBox rtbChat;
-        private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem tsmAudibleNotification;
         private System.Windows.Forms.ToolStripMenuItem pauseChatToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tsmChatNotifications;
         private System.Windows.Forms.ContextMenuStrip cmsNotify;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem tsmTray;
+        private System.Windows.Forms.ToolStripMenuItem tsmGetSource;
     }
 }
 

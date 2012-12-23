@@ -13,7 +13,8 @@ using Auxilium.Classes;
 using Microsoft.Win32;
 using System.IO;
 using Microsoft.VisualBasic; // :(
-using Microsoft.VisualBasic.Devices; // :(
+using Microsoft.VisualBasic.Devices;
+using System.Xml.Serialization; // :(
 
 namespace Auxilium
 {
@@ -38,13 +39,13 @@ namespace Auxilium
 
         private bool AutoLogin;
 
-        private bool ShowTimestamps = true;
-        private bool SpaceOutMessages = true;
-        private bool ShowChatNotifications = true;
-        private bool AudibleNotification = false;
-        private bool ShowJoinLeaveEvents = false;
-        private bool WriteMessageToFile = false;
-        private bool MinimizeToTray = false;
+        private bool ShowTimestamps { get { return tsmTimestamps.Checked; } set { tsmTimestamps.Checked = value; } }
+        private bool SpaceOutMessages { get { return tsmSpaceMessages.Checked; } set { tsmSpaceMessages.Checked = value; } }
+        private bool ShowChatNotifications { get { return tsmChatNotifications.Checked; } set { tsmChatNotifications.Checked = value; } }
+        private bool AudibleNotification { get { return tsmAudibleNotification.Checked; } set { tsmAudibleNotification.Checked = value; } }
+        private bool ShowJoinLeaveEvents { get { return tsmUserJoinEvents.Checked; } set { tsmUserJoinEvents.Checked = value; } }
+        private bool WriteMessageToFile { get { return tsmWriteMessages.Checked; } set { tsmWriteMessages.Checked = value; } }
+        private bool MinimizeToTray { get { return tsmTray.Checked; } set { tsmTray.Checked = value; } }
 
         private bool PauseChat = false;
         private List<ChatMessage> PauseBuffer = new List<ChatMessage>();
@@ -76,8 +77,8 @@ namespace Auxilium
             lvUsers.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.None);
 
             //TODO: This should use a better format.
-            chatLogger = new StreamWriter("chat-" + DateTime.Now.ToFileTimeUtc() + ".log");
-            chatLogger.AutoFlush = true;
+            //chatLogger = new StreamWriter("chat-" + DateTime.Now.ToFileTimeUtc() + ".log");
+            //chatLogger.AutoFlush = true;
         }
 
         private void frmMain_Shown(object sender, EventArgs e)
@@ -117,13 +118,14 @@ namespace Auxilium
                 }
                 if (names.Contains("Auto"))
                 {
-                    if (Convert.ToBoolean((string)rk.GetValue("Auto")))
+                    if (Convert.ToBoolean((string)rk.GetValue("Auto")) && !string.IsNullOrEmpty(tbUser.Text.Trim()) && !string.IsNullOrEmpty(tbPass.Text.Trim()))
                     {
                         cbAuto.Checked = true;
                         AutoLogin = true;
                     }
                 }
             }
+            LoadSettings();
         }
 
         private void CheckForUpdates()
@@ -225,6 +227,12 @@ namespace Auxilium
                         break;
                     case ServerPacket.WakeUp:
                         HandleWakeupPacket((ushort)values[1]);
+                        break;
+                    case ServerPacket.RecentMessages:
+                        HandleRecentMessagesPacket((string)values[1], (string)values[2], (string)values[3], (byte)values[4]);
+                        break;
+                    case ServerPacket.News:
+                        HandleNewsPacket((string)values[1]);
                         break;
                 }
             }
@@ -389,6 +397,12 @@ namespace Auxilium
             }
         }
 
+        private void HandleRecentMessagesPacket(string time, string username, string message, byte rank)
+        {
+            DateTime dTime = DateTime.Parse(time).ToLocalTime();
+            AppendChat(GetRankColor(rank), Color.Black, username, message, dTime);
+        }
+
         private void HandleBanListPacket(string list)
         {
             AppendChat(Color.Red, Color.Black, "Ban List", list);
@@ -405,6 +419,16 @@ namespace Auxilium
                 if (AudibleNotification)
                     AudioPlayer.Play(Properties.Resources.Notify, AudioPlayMode.Background);
             }
+        }
+
+        private void HandleNewsPacket(string news)
+        {
+            Form f;
+            if (CheckFormIsOpen(typeof(News), out f) != null)
+                f.Close();
+
+            News fNews = new News(news);
+            fNews.Show();
         }
 
         #endregion
@@ -432,9 +456,15 @@ namespace Auxilium
             tslChatting.Text = "Status: Connection to server failed or lost.";
         }
 
-        private Form CheckFormIsOpen(Type chkForm, out Form frm)
+        private Form CheckFormIsOpen(Type cFrm, out Form rFrm)
         {
-            return frm = Application.OpenForms.Cast<Form>().FirstOrDefault(x => x.GetType() == chkForm);
+            foreach (Form f in Application.OpenForms)
+            {
+                if (f.GetType() == cFrm)
+                    return rFrm = f;
+            }
+
+            return rFrm = null;
         }
 
         private void Login()
@@ -544,6 +574,48 @@ namespace Auxilium
             chatLogger.Write("**** Chat cleared at: " + DateTime.UtcNow.ToLongTimeString() + " ****");
             chatLogger.WriteLine();
         }
+
+        private void LoadSettings()
+        {
+            if (!File.Exists("settings.xml"))
+                return;
+            using (Stream s = File.OpenRead("settings.xml"))
+            {
+                XmlSerializer xml = new XmlSerializer(typeof(Settings));
+                Settings settings = (Settings)xml.Deserialize(s);
+                WriteMessageToFile = settings.WriteMessages;
+                ShowTimestamps = settings.Timestamps;
+                SpaceOutMessages = settings.SpaceMessages;
+                AudibleNotification = settings.AudioNotification;
+                ShowChatNotifications = settings.ChatNotifications;
+                MinimizeToTray = settings.MinimizeToTray;
+                ShowJoinLeaveEvents = ShowJoinLeaveEvents;
+                s.Flush();
+                s.Close();
+                s.Dispose();
+            }
+        }
+        private void SaveSettings()
+        {
+            using (Stream s = File.OpenWrite("settings.xml"))
+            {
+                Settings settings = new Settings()
+                {
+                    SpaceMessages = SpaceOutMessages,
+                    AudioNotification = AudibleNotification,
+                    ChatNotifications = ShowChatNotifications,
+                    JoinLeaveEvents = ShowJoinLeaveEvents,
+                    MinimizeToTray = MinimizeToTray,
+                    Timestamps = ShowTimestamps,
+                    WriteMessages = WriteMessageToFile
+                };
+                XmlSerializer xml = new XmlSerializer(typeof(Settings));
+                xml.Serialize(s, settings);
+                s.Flush();
+                s.Close();
+                s.Dispose();
+            }
+        }
         #endregion
 
         #region " UI Events "
@@ -635,11 +707,6 @@ namespace Auxilium
             Process.Start("http://www.hackforums.net/private.php?action=send&uid=498184&subject=Donation%20For%20Auxilium&message=I%20would%20like%20to%20donate%20to%20Auxilium.");
         }
 
-        private void tsmSuggestions_Click(object sender, EventArgs e)
-        {
-            Process.Start("http://imminentmethods.info/auxilium/");
-        }
-
         private void copyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             rtbChat.Copy();
@@ -658,43 +725,56 @@ namespace Auxilium
             Environment.Exit(0);
         }
 
-        private void tsmTray_Click(object sender, EventArgs e)
-        {
-            MinimizeToTray = tsmTray.Checked;
-        }
-
         #endregion
 
         #region " Options "
 
+
+        private void tsmTray_CheckedChanged(object sender, EventArgs e)
+        {
+            SaveSettings();
+        }
+
         private void tsmTimestamps_CheckedChanged(object sender, EventArgs e)
         {
-            ShowTimestamps = tsmTimestamps.Checked;
+            SaveSettings();
         }
 
         private void tsmChatNotifications_CheckedChanged(object sender, EventArgs e)
         {
-            ShowChatNotifications = tsmChatNotifications.Checked;
+            SaveSettings();
         }
 
         private void toolStripMenuItem1_CheckedChanged(object sender, EventArgs e)
         {
-            AudibleNotification = toolStripMenuItem1.Checked;
+            SaveSettings();
         }
 
         private void tsmSpaceMessages_CheckedChanged(object sender, EventArgs e)
         {
-            SpaceOutMessages = tsmSpaceMessages.Checked;
+            SaveSettings();
         }
 
         private void tsmUserJoinEvents_CheckedChanged(object sender, EventArgs e)
         {
-            ShowJoinLeaveEvents = tsmUserJoinEvents.Checked;
+            SaveSettings();
         }
 
         private void writeMessagesToFileToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
         {
-            WriteMessageToFile = writeMessagesToFileToolStripMenuItem.Checked;
+            SaveSettings();
+            if (WriteMessageToFile)
+            {
+                chatLogger = new StreamWriter("chat-" + DateTime.Now.ToFileTime() + ".log");
+                chatLogger.AutoFlush = true;
+            } else {
+                if (chatLogger.BaseStream != null)
+                {
+                    chatLogger.Flush();
+                    chatLogger.BaseStream.Close();
+                }
+                chatLogger = null;
+            }
         }
 
         private void changeFontToolStripMenuItem_Click(object sender, EventArgs e)
@@ -799,12 +879,12 @@ namespace Auxilium
             rtbChat.ScrollToCaret();
         }
 
-        private void AppendChat(Color nameColor, Color msgColor, string name, string message)
+        private void AppendChat(Color nameColor, Color msgColor, string name, string message, DateTime time = default(DateTime))
         {
             string sender = string.Format("{0}: ", name);
 
             if (ShowTimestamps)
-                sender = string.Format("[{0}] {1}", DateTime.Now.ToShortTimeString(), sender);
+                sender = string.Format("[{0}] {1}", (time == default(DateTime) ? DateTime.Now.ToShortTimeString() : time.ToShortTimeString()), sender);
 
             AppendText(nameColor, sender);
             AppendText(msgColor, message);
@@ -955,6 +1035,17 @@ namespace Auxilium
                 rtbMessage.SelectionStart += s.Length;
             }
             catch { }
+        }
+
+    private void tsmNews_Click(object sender, EventArgs e)
+        {
+            byte[] data = Packer.Serialize((byte)ClientPacket.News);
+            Connection.Send(data);
+        }
+
+        private void tsmGetSource_Click(object sender, EventArgs e)
+        {
+            Process.Start("https://github.com/BanksyHF/Auxilium");
         }
 
         #endregion
