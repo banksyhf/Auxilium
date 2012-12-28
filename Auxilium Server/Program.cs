@@ -35,8 +35,17 @@ namespace Auxilium_Server
 
         static System.Threading.Timer ChatMonitor;
 
-        //TODO: Have a pool of SQL Connections to randomly select from when querying the DB.
-        static MySqlConnection SQL;
+        //Done, Still Testing: Have a pool of SQL Connections to randomly select from when querying the DB.
+        static MySqlConnection[] SQLQueue;
+        static Random RandomSQL;
+
+        static MySqlConnection SQL
+        {
+            get
+            {
+                return SQLQueue[RandomSQL.Next(0, SQLQueue.Length)];
+            }
+        }
 
         #endregion
 
@@ -44,9 +53,16 @@ namespace Auxilium_Server
 
         static void Main(string[] args)
         {
-            SQL = new MySqlConnection();
-            SQL.ConnectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
-            SQL.Open();
+            SQLQueue = new MySqlConnection[10];
+            RandomSQL = new Random(new Guid().GetHashCode());
+
+            for (int i = 0; i < SQLQueue.Length; i++)
+            {
+                MySqlConnection msc = new MySqlConnection();
+                msc.ConnectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
+                msc.Open();
+                SQLQueue[i] = msc;
+            }
 
             Channels = new string[] { "Lounge" };
 
@@ -253,6 +269,9 @@ namespace Auxilium_Server
                 {
                     switch (packet)
                     {
+                        case ClientPacket.SignOut:
+                            HandleSignOutPacket(c);
+                            break;
                         case ClientPacket.Channel:
                             HandleWakeup(c, true); //Supress the packet send here since we are changing rooms anyways.
                             HandleChannelPacket(c, (byte)values[1]);
@@ -380,6 +399,11 @@ namespace Auxilium_Server
                 byte[] data1 = Packer.Serialize((byte)ServerPacket.SignIn, false);
                 c.Send(data1);
             }
+        }
+
+        static void HandleSignOutPacket(Client c)
+        {
+            c.Value.Authenticated = false;
         }
 
         static void HandleRegisterPacket(Client c, string name, string pass)
@@ -813,7 +837,7 @@ namespace Auxilium_Server
             Admin = 41
         }
 
-        enum ServerPacket : byte
+        public enum ServerPacket : byte
         {
             SignIn,
             Register,
@@ -835,6 +859,7 @@ namespace Auxilium_Server
         enum ClientPacket : byte
         {
             SignIn,
+            SignOut,
             Register,
             Channel,
             ChatMessage,

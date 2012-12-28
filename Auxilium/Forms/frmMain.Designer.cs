@@ -48,9 +48,10 @@
             this.changeFontToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pMsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmDonations = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmNews = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmDonations = new System.Windows.Forms.ToolStripMenuItem();
             this.pauseChatToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmGetSource = new System.Windows.Forms.ToolStripMenuItem();
             this.sStatus = new System.Windows.Forms.StatusStrip();
             this.tslChatting = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -62,7 +63,6 @@
             this.pasteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.cmsChatClipboard = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.tsmGetSource = new System.Windows.Forms.ToolStripMenuItem();
             this.hiddenTab1 = new HiddenTab();
             this.tpLogin = new System.Windows.Forms.TabPage();
             this.smoothLabel1 = new SmoothLabel();
@@ -285,14 +285,6 @@
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(56, 22);
             this.helpToolStripMenuItem.Text = "Help";
             // 
-            // tsmDonations
-            // 
-            this.tsmDonations.Image = ((System.Drawing.Image)(resources.GetObject("tsmDonations.Image")));
-            this.tsmDonations.Name = "tsmDonations";
-            this.tsmDonations.Size = new System.Drawing.Size(183, 22);
-            this.tsmDonations.Text = "Donate (Server Costs)";
-            this.tsmDonations.Click += new System.EventHandler(this.tsmDonations_Click);
-            // 
             // tsmNews
             // 
             this.tsmNews.Image = ((System.Drawing.Image)(resources.GetObject("tsmNews.Image")));
@@ -300,6 +292,14 @@
             this.tsmNews.Size = new System.Drawing.Size(183, 22);
             this.tsmNews.Text = "News";
             this.tsmNews.Click += new System.EventHandler(this.tsmNews_Click);
+            // 
+            // tsmDonations
+            // 
+            this.tsmDonations.Image = ((System.Drawing.Image)(resources.GetObject("tsmDonations.Image")));
+            this.tsmDonations.Name = "tsmDonations";
+            this.tsmDonations.Size = new System.Drawing.Size(183, 22);
+            this.tsmDonations.Text = "Donate (Server Costs)";
+            this.tsmDonations.Click += new System.EventHandler(this.tsmDonations_Click);
             // 
             // pauseChatToolStripMenuItem
             // 
@@ -310,6 +310,14 @@
             this.pauseChatToolStripMenuItem.Size = new System.Drawing.Size(91, 22);
             this.pauseChatToolStripMenuItem.Text = "Pause Chat";
             this.pauseChatToolStripMenuItem.CheckedChanged += new System.EventHandler(this.pauseChatToolStripMenuItem_CheckedChanged);
+            // 
+            // tsmGetSource
+            // 
+            this.tsmGetSource.Image = ((System.Drawing.Image)(resources.GetObject("tsmGetSource.Image")));
+            this.tsmGetSource.Name = "tsmGetSource";
+            this.tsmGetSource.Size = new System.Drawing.Size(68, 22);
+            this.tsmGetSource.Text = "Source";
+            this.tsmGetSource.Click += new System.EventHandler(this.tsmGetSource_Click);
             // 
             // sStatus
             // 
@@ -443,14 +451,6 @@
             this.copyToolStripMenuItem.Size = new System.Drawing.Size(71, 22);
             this.copyToolStripMenuItem.Text = "Copy";
             this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
-            // 
-            // tsmGetSource
-            // 
-            this.tsmGetSource.Image = ((System.Drawing.Image)(resources.GetObject("tsmGetSource.Image")));
-            this.tsmGetSource.Name = "tsmGetSource";
-            this.tsmGetSource.Size = new System.Drawing.Size(68, 22);
-            this.tsmGetSource.Text = "Source";
-            this.tsmGetSource.Click += new System.EventHandler(this.tsmGetSource_Click);
             // 
             // hiddenTab1
             // 
@@ -764,6 +764,7 @@
             this.lvUsers.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.lvUsers.AutoArrange = false;
             this.lvUsers.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeader1});
             this.lvUsers.ContextMenuStrip = this.cmsUsers;
@@ -771,6 +772,7 @@
             this.lvUsers.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.lvUsers.Location = new System.Drawing.Point(0, 0);
             this.lvUsers.Name = "lvUsers";
+            this.lvUsers.Scrollable = false;
             this.lvUsers.Size = new System.Drawing.Size(153, 264);
             this.lvUsers.SmallImageList = this.ilUsers;
             this.lvUsers.TabIndex = 20;
@@ -779,7 +781,7 @@
             // 
             // columnHeader1
             // 
-            this.columnHeader1.Width = 147;
+            this.columnHeader1.Width = 149;
             // 
             // comboBox1
             // 

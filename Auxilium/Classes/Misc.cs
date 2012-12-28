@@ -158,6 +158,7 @@ namespace Auxilium
     public enum ClientPacket : byte
     {
         SignIn,
+        SignOut,
         Register,
         Channel,
         ChatMessage,

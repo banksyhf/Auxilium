@@ -13,8 +13,8 @@ using Auxilium.Classes;
 using Microsoft.Win32;
 using System.IO;
 using Microsoft.VisualBasic; // :(
-using Microsoft.VisualBasic.Devices;
-using System.Xml.Serialization; // :(
+using Microsoft.VisualBasic.Devices; // :(
+using System.Xml.Serialization;
 
 namespace Auxilium
 {
@@ -437,7 +437,7 @@ namespace Auxilium
 
         private void ConnectToServer()
         {
-            tslChatting.Text = "Status: Connecting to server..";
+            tslChatting.Text = "Status: Connecting to server...";
             Connection.Connect("127.0.0.1", 3357);
         }
 
@@ -581,39 +581,52 @@ namespace Auxilium
                 return;
             using (Stream s = File.OpenRead("settings.xml"))
             {
-                XmlSerializer xml = new XmlSerializer(typeof(Settings));
-                Settings settings = (Settings)xml.Deserialize(s);
-                WriteMessageToFile = settings.WriteMessages;
-                ShowTimestamps = settings.Timestamps;
-                SpaceOutMessages = settings.SpaceMessages;
-                AudibleNotification = settings.AudioNotification;
-                ShowChatNotifications = settings.ChatNotifications;
-                MinimizeToTray = settings.MinimizeToTray;
-                ShowJoinLeaveEvents = ShowJoinLeaveEvents;
-                s.Flush();
-                s.Close();
-                s.Dispose();
+                try
+                {
+                    XmlSerializer xml = new XmlSerializer(typeof(Settings));
+                    Settings settings = (Settings)xml.Deserialize(s);
+                    WriteMessageToFile = settings.WriteMessages;
+                    ShowTimestamps = settings.Timestamps;
+                    SpaceOutMessages = settings.SpaceMessages;
+                    AudibleNotification = settings.AudioNotification;
+                    ShowChatNotifications = settings.ChatNotifications;
+                    MinimizeToTray = settings.MinimizeToTray;
+                    ShowJoinLeaveEvents = ShowJoinLeaveEvents;
+                }
+                finally
+                {
+                    s.Flush();
+                    s.Close();
+                    s.Dispose();
+                }
             }
         }
         private void SaveSettings()
         {
+            File.Delete("settings.xml"); //Delete this so the XmlSerializer doesn't get messed up.
             using (Stream s = File.OpenWrite("settings.xml"))
             {
-                Settings settings = new Settings()
+                try
                 {
-                    SpaceMessages = SpaceOutMessages,
-                    AudioNotification = AudibleNotification,
-                    ChatNotifications = ShowChatNotifications,
-                    JoinLeaveEvents = ShowJoinLeaveEvents,
-                    MinimizeToTray = MinimizeToTray,
-                    Timestamps = ShowTimestamps,
-                    WriteMessages = WriteMessageToFile
-                };
-                XmlSerializer xml = new XmlSerializer(typeof(Settings));
-                xml.Serialize(s, settings);
-                s.Flush();
-                s.Close();
-                s.Dispose();
+                    Settings settings = new Settings()
+                    {
+                        SpaceMessages = SpaceOutMessages,
+                        AudioNotification = AudibleNotification,
+                        ChatNotifications = ShowChatNotifications,
+                        JoinLeaveEvents = ShowJoinLeaveEvents,
+                        MinimizeToTray = MinimizeToTray,
+                        Timestamps = ShowTimestamps,
+                        WriteMessages = WriteMessageToFile
+                    };
+                    XmlSerializer xml = new XmlSerializer(typeof(Settings));
+                    xml.Serialize(s, settings);
+                }
+                finally
+                {
+                    s.Flush();
+                    s.Close();
+                    s.Dispose();
+                }
             }
         }
         #endregion
@@ -1006,9 +1019,13 @@ namespace Auxilium
 
         private void tsmSignOut_Click(object sender, EventArgs e)
         {
-            ConnectToServer();
             tsmSignOut.Enabled = false;
             hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
+
+            byte[] data = Packer.Serialize((byte)ClientPacket.SignOut);
+            Connection.Send(data);
+
+            tslChatting.Text = "Status: Sign in.";
         }
 
         private void frmMain_Resize(object sender, EventArgs e)
