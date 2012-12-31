@@ -133,7 +133,8 @@ namespace Auxilium
         Register,
         Chat,
         Reconnect,
-        PrivateMessages
+        ViewProfile,
+        EditProfile
     }
 
     public enum ServerPacket : byte
@@ -152,7 +153,10 @@ namespace Auxilium
         KeepAlive,
         WakeUp,
         RecentMessages,
-        News
+        News,
+        ViewProfile,
+        Profile,
+        EditProfile
     }
 
     public enum ClientPacket : byte
@@ -164,7 +168,9 @@ namespace Auxilium
         ChatMessage,
         PM,
         KeepAlive,
-        News
+        News,
+        ViewProfile,
+        EditProfile
     }
 
     public enum SpecialRank : byte

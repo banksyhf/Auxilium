@@ -3,6 +3,7 @@ using System.Drawing;
 using System.Collections;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.Drawing.Drawing2D;
 
 public class HiddenTab : TabControl
 {
@@ -111,6 +112,221 @@ class SmoothLabel : Control
 		e.Graphics.DrawRectangle(P1, 0, 0, Width - 1, Height - 1);
 	}
 
+}
+public class ChangerControl : Control
+{
+    #region " Control Help "
+    public GraphicsPath RoundRect(Rectangle Rectangle, int Curve)
+    {
+        GraphicsPath P = new GraphicsPath();
+        int ArcRectangleWidth = Curve * 2;
+        P.AddArc(new Rectangle(Rectangle.X, Rectangle.Y, ArcRectangleWidth, ArcRectangleWidth), -180, 90);
+        P.AddArc(new Rectangle(Rectangle.Width - ArcRectangleWidth + Rectangle.X, Rectangle.Y, ArcRectangleWidth, ArcRectangleWidth), -90, 90);
+        P.AddArc(new Rectangle(Rectangle.Width - ArcRectangleWidth + Rectangle.X, Rectangle.Height - ArcRectangleWidth + Rectangle.Y, ArcRectangleWidth, ArcRectangleWidth), 0, 90);
+        P.AddArc(new Rectangle(Rectangle.X, Rectangle.Height - ArcRectangleWidth + Rectangle.Y, ArcRectangleWidth, ArcRectangleWidth), 90, 90);
+        P.AddLine(new Point(Rectangle.X, Rectangle.Height - ArcRectangleWidth + Rectangle.Y), new Point(Rectangle.X, Curve + Rectangle.Y));
+        return P;
+    }
+    public GraphicsPath RoundRect(int X, int Y, int Width, int Height, int Curve)
+    {
+        return RoundRect(new Rectangle(X, Y, Width, Height), Curve);
+    }
+    public enum MouseState : byte
+    {
+        None = 0,
+        Over = 1,
+        Down = 2,
+        Block = 3
+    }
+    #endregion
+
+    #region " Variables "
+    public TextBox tbChange;
+    private bool editing = false;
+    #endregion
+    MouseState State = new MouseState();
+
+    #region " Constructor "
+    public ChangerControl()
+        : base()
+    {
+        tbChange = new TextBox
+        {
+            Text = Text,
+            Size = Size,
+            ForeColor = ForeColor,
+            Visible = false,
+            Width = 150
+        };
+        SetStyle(ControlStyles.UserPaint, true);
+        //SetStyle(ControlStyles.SupportsTransparentBackColor, true);
+        SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
+        SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+        SetStyle(ControlStyles.FixedHeight, true);
+        DoubleBuffered = true;
+        ForeColor = Color.Black;
+        Width = 200;
+        Controls.Add(tbChange);
+        tbChange.KeyUp += new KeyEventHandler(OnKeyUp);
+    }
+    #endregion
+
+    #region " Methods "
+
+    protected override void CreateHandle()
+    {
+        base.CreateHandle();
+        tbChange.Text = Text;
+    }
+    protected override void OnResize(System.EventArgs e)
+    {
+        base.OnResize(e);
+        Invalidate();
+        Height = 23;
+    }
+    protected override void OnTextChanged(System.EventArgs e)
+    {
+        base.OnTextChanged(e);
+        Invalidate();
+    }
+    protected override void OnForeColorChanged(System.EventArgs e)
+    {
+        base.OnForeColorChanged(e);
+        Invalidate();
+    }
+    protected override void OnBackColorChanged(System.EventArgs e)
+    {
+        base.OnBackColorChanged(e);
+        Invalidate();
+    }
+    protected override void OnFontChanged(System.EventArgs e)
+    {
+        base.OnFontChanged(e);
+        Invalidate();
+    }
+    protected override void OnParentBackColorChanged(System.EventArgs e)
+    {
+        base.OnParentBackColorChanged(e);
+        Invalidate();
+    }
+    protected override void OnMouseEnter(System.EventArgs e)
+    {
+        base.OnMouseEnter(e);
+        State = MouseState.Over;
+        Invalidate();
+    }
+    protected override void OnMouseDown(System.Windows.Forms.MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        State = MouseState.Down;
+        Invalidate();
+    }
+    protected override void OnMouseLeave(System.EventArgs e)
+    {
+        base.OnMouseLeave(e);
+        State = MouseState.None;
+        Invalidate();
+    }
+    protected override void OnMouseUp(System.Windows.Forms.MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        State = MouseState.Over;
+        Invalidate();
+    }
+    protected override void OnPaint(System.Windows.Forms.PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        Font fontButtons = new Font("Marlett", 8.5F, FontStyle.Regular);
+        Bitmap B = new Bitmap(Width, Height);
+        Graphics G = Graphics.FromImage(B);
+        {
+            G.SmoothingMode = SmoothingMode.HighQuality;
+            G.Clear(BackColor);
+            if (!editing)
+            {
+                if (State == MouseState.Over)
+                {
+                    G.FillPath(new SolidBrush(Color.FromArgb(220, 220, 220)), RoundRect(new Rectangle(0, 3, (int)G.MeasureString(Text, Font).Width + 1, Height - 5), 3));
+                }
+            }
+            G.DrawString(Text, Font, new SolidBrush(ForeColor), new Point(1, 6), StringFormat.GenericDefault);
+
+
+
+            LinearGradientBrush buttonGrad = new LinearGradientBrush(new Rectangle(0, 2, Height - 7, Height - 1), Color.White, Color.FromArgb(200, 200, 200), 90);
+            if (editing)
+            {
+                G.FillRectangle(new SolidBrush(BackColor), ClientRectangle);
+                G.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+                G.FillEllipse(buttonGrad, new Rectangle(tbChange.Size.Width + 4, 3, Height - 7, Height - 7));
+                G.DrawEllipse(Pens.Black, new Rectangle(tbChange.Size.Width + 4, 3, Height - 7, Height - 7));
+                G.DrawString("a", new Font(fontButtons.FontFamily, 14), Brushes.Black, new Point(tbChange.Size.Width + 1, 1));
+
+                G.FillEllipse(buttonGrad, new Rectangle(tbChange.Size.Width + 5 + (Height - 7) + 3, 3, Height - 7, Height - 7));
+                G.DrawEllipse(Pens.Black, new Rectangle(tbChange.Size.Width + 5 + (Height - 7) + 3, 3, Height - 7, Height - 7));
+                G.DrawString("r", new Font(fontButtons.FontFamily, 9), Brushes.Black, new Point(tbChange.Size.Width + 5 + (Height - 7) + 4, 5));
+            }
+            G.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SystemDefault;
+            e.Graphics.DrawImage(B, new Point(0, 0));
+            G.Dispose();
+            B.Dispose();
+        }
+
+    }
+    protected override void OnMouseClick(System.Windows.Forms.MouseEventArgs e)
+    {
+        base.OnMouseClick(e);
+        Point mouseL = e.Location;
+
+        {
+            tbChange.Location = new Point(0, 3);
+            tbChange.Size = new Size(Width - 50, Height);
+            tbChange.Visible = true;
+            editing = tbChange.Visible;
+            tbChange.Focus();
+            tbChange.SelectAll();
+        }
+
+        if ((editing))
+        {
+            if (mouseL.X >= (Width - 45) && mouseL.X <= (Width - 45) + 18)
+            {
+                editing = false;
+                Text = tbChange.Text;
+            }
+            else if (mouseL.X >= (Width - 45) + 18)
+            {
+                editing = false;
+            }
+            tbChange.Visible = editing;
+        }
+
+        Invalidate();
+    }
+    protected void OnKeyUp(object sender, System.Windows.Forms.KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+
+        if (editing)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                editing = false;
+                Text = tbChange.Text;
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                editing = false;
+            }
+
+            tbChange.Visible = editing;
+        }
+
+        Invalidate();
+    }
+
+    #endregion
 }
 
 //    #region " Sort "

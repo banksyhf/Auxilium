@@ -34,148 +34,162 @@ namespace Auxilium.Classes
 
         public byte[] Serialize(params object[] data)
         {
-            MemoryStream Stream = new MemoryStream();
-            BinaryWriter Writer = new BinaryWriter(Stream, Encoding.UTF8);
-            byte Current = 0;
-
-            Writer.Write(Convert.ToByte(data.Length));
-
-            for (int I = 0; I <= data.Length - 1; I++)
+            try
             {
-                Current = Table[data[I].GetType()];
-                Writer.Write(Current);
+                MemoryStream Stream = new MemoryStream();
+                BinaryWriter Writer = new BinaryWriter(Stream, Encoding.UTF8);
+                byte Current = 0;
 
-                switch (Current)
+                Writer.Write(Convert.ToByte(data.Length));
+
+                for (int I = 0; I <= data.Length - 1; I++)
                 {
-                    case 0:
-                        Writer.Write((bool)data[I]);
-                        break;
-                    case 1:
-                        Writer.Write((byte)data[I]);
-                        break;
-                    case 2:
-                        Writer.Write(((byte[])data[I]).Length);
-                        Writer.Write((byte[])data[I]);
-                        break;
-                    case 3:
-                        Writer.Write((char)data[I]);
-                        break;
-                    case 4:
-                        Writer.Write(((char[])data[I]).ToString());
-                        break;
-                    case 5:
-                        Writer.Write((decimal)data[I]);
-                        break;
-                    case 6:
-                        Writer.Write((double)data[I]);
-                        break;
-                    case 7:
-                        Writer.Write((int)data[I]);
-                        break;
-                    case 8:
-                        Writer.Write((long)data[I]);
-                        break;
-                    case 9:
-                        Writer.Write((sbyte)data[I]);
-                        break;
-                    case 10:
-                        Writer.Write((short)data[I]);
-                        break;
-                    case 11:
-                        Writer.Write((float)data[I]);
-                        break;
-                    case 12:
-                        Writer.Write((string)data[I]);
-                        break;
-                    case 13:
-                        Writer.Write((uint)data[I]);
-                        break;
-                    case 14:
-                        Writer.Write((ulong)data[I]);
-                        break;
-                    case 15:
-                        Writer.Write((ushort)data[I]);
-                        break;
-                    case 16:
-                        Writer.Write(((System.DateTime)data[I]).ToBinary());
-                        break;
-                }
-            }
+                    Current = Table[data[I].GetType()];
+                    Writer.Write(Current);
 
-            Writer.Close();
-            return Stream.ToArray();
+                    switch (Current)
+                    {
+                        case 0:
+                            Writer.Write((bool)data[I]);
+                            break;
+                        case 1:
+                            Writer.Write((byte)data[I]);
+                            break;
+                        case 2:
+                            Writer.Write(((byte[])data[I]).Length);
+                            Writer.Write((byte[])data[I]);
+                            break;
+                        case 3:
+                            Writer.Write((char)data[I]);
+                            break;
+                        case 4:
+                            Writer.Write(((char[])data[I]).ToString());
+                            break;
+                        case 5:
+                            Writer.Write((decimal)data[I]);
+                            break;
+                        case 6:
+                            Writer.Write((double)data[I]);
+                            break;
+                        case 7:
+                            Writer.Write((int)data[I]);
+                            break;
+                        case 8:
+                            Writer.Write((long)data[I]);
+                            break;
+                        case 9:
+                            Writer.Write((sbyte)data[I]);
+                            break;
+                        case 10:
+                            Writer.Write((short)data[I]);
+                            break;
+                        case 11:
+                            Writer.Write((float)data[I]);
+                            break;
+                        case 12:
+                            Writer.Write((string)data[I]);
+                            break;
+                        case 13:
+                            Writer.Write((uint)data[I]);
+                            break;
+                        case 14:
+                            Writer.Write((ulong)data[I]);
+                            break;
+                        case 15:
+                            Writer.Write((ushort)data[I]);
+                            break;
+                        case 16:
+                            Writer.Write(((System.DateTime)data[I]).ToBinary());
+                            break;
+                    }
+                }
+
+                Writer.Close();
+                return Stream.ToArray();
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public object[] Deserialize(byte[] data)
         {
-            MemoryStream Stream = new MemoryStream(data);
-            BinaryReader Reader = new BinaryReader(Stream, Encoding.UTF8);
-            List<object> Items = new List<object>();
-            byte Current = 0;
-            byte Count = Reader.ReadByte();
-
-            for (int I = 0; I < Count; I++)
+            try
             {
-                Current = Reader.ReadByte();
+                MemoryStream Stream = new MemoryStream(data);
+                BinaryReader Reader = new BinaryReader(Stream, Encoding.UTF8);
+                List<object> Items = new List<object>();
+                byte Current = 0;
+                byte Count = Reader.ReadByte();
 
-                switch (Current)
+                for (int I = 0; I < Count; I++)
                 {
-                    case 0:
-                        Items.Add(Reader.ReadBoolean());
-                        break;
-                    case 1:
-                        Items.Add(Reader.ReadByte());
-                        break;
-                    case 2:
-                        Items.Add(Reader.ReadBytes(Reader.ReadInt32()));
-                        break;
-                    case 3:
-                        Items.Add(Reader.ReadChar());
-                        break;
-                    case 4:
-                        Items.Add(Reader.ReadString().ToCharArray());
-                        break;
-                    case 5:
-                        Items.Add(Reader.ReadDecimal());
-                        break;
-                    case 6:
-                        Items.Add(Reader.ReadDouble());
-                        break;
-                    case 7:
-                        Items.Add(Reader.ReadInt32());
-                        break;
-                    case 8:
-                        Items.Add(Reader.ReadInt64());
-                        break;
-                    case 9:
-                        Items.Add(Reader.ReadSByte());
-                        break;
-                    case 10:
-                        Items.Add(Reader.ReadInt16());
-                        break;
-                    case 11:
-                        Items.Add(Reader.ReadSingle());
-                        break;
-                    case 12:
-                        Items.Add(Reader.ReadString());
-                        break;
-                    case 13:
-                        Items.Add(Reader.ReadUInt32());
-                        break;
-                    case 14:
-                        Items.Add(Reader.ReadUInt64());
-                        break;
-                    case 15:
-                        Items.Add(Reader.ReadUInt16());
-                        break;
-                    case 16:
-                        Items.Add(DateTime.FromBinary(Reader.ReadInt64()));
-                        break;
-                }
-            }
+                    Current = Reader.ReadByte();
 
-            Reader.Close();
-            return Items.ToArray();
+                    switch (Current)
+                    {
+                        case 0:
+                            Items.Add(Reader.ReadBoolean());
+                            break;
+                        case 1:
+                            Items.Add(Reader.ReadByte());
+                            break;
+                        case 2:
+                            Items.Add(Reader.ReadBytes(Reader.ReadInt32()));
+                            break;
+                        case 3:
+                            Items.Add(Reader.ReadChar());
+                            break;
+                        case 4:
+                            Items.Add(Reader.ReadString().ToCharArray());
+                            break;
+                        case 5:
+                            Items.Add(Reader.ReadDecimal());
+                            break;
+                        case 6:
+                            Items.Add(Reader.ReadDouble());
+                            break;
+                        case 7:
+                            Items.Add(Reader.ReadInt32());
+                            break;
+                        case 8:
+                            Items.Add(Reader.ReadInt64());
+                            break;
+                        case 9:
+                            Items.Add(Reader.ReadSByte());
+                            break;
+                        case 10:
+                            Items.Add(Reader.ReadInt16());
+                            break;
+                        case 11:
+                            Items.Add(Reader.ReadSingle());
+                            break;
+                        case 12:
+                            Items.Add(Reader.ReadString());
+                            break;
+                        case 13:
+                            Items.Add(Reader.ReadUInt32());
+                            break;
+                        case 14:
+                            Items.Add(Reader.ReadUInt64());
+                            break;
+                        case 15:
+                            Items.Add(Reader.ReadUInt16());
+                            break;
+                        case 16:
+                            Items.Add(DateTime.FromBinary(Reader.ReadInt64()));
+                            break;
+                    }
+                }
+
+                Reader.Close();
+                return Items.ToArray();
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

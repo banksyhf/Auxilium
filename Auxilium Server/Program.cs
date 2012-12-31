@@ -71,7 +71,7 @@ namespace Auxilium_Server
             Packer = new Pack();
             Listener = new Server();
 
-            Listener.BufferSize = 32767;
+            Listener.BufferSize = 2048;
             Listener.Client_Read += Client_Read;
             Listener.MaxConnections = 200;
             Listener.Client_State += Client_State;
@@ -140,7 +140,10 @@ namespace Auxilium_Server
                 AwardPoints(c);
 
                 if (!shutDown)
+                {
                     FullUserListUpdate();
+                    SendProfile(c);
+                }
 
                 if (doBackup || shutDown)
                 {
@@ -263,6 +266,9 @@ namespace Auxilium_Server
                 }
 
                 object[] values = Packer.Deserialize(e);
+                if (values == null)
+                    return;
+
                 ClientPacket packet = (ClientPacket)values[0];
 
                 if (c.Value.Authenticated)
@@ -289,6 +295,12 @@ namespace Auxilium_Server
                             break;
                         case ClientPacket.News:
                             HandleNewsPacket(c);
+                            break;
+                        case ClientPacket.ViewProfile:
+                            HandleViewProfilePacket(c, (string)values[1]);
+                            break;
+                        case ClientPacket.EditProfile:
+                            HandleEditProfilePacket(c, (string)values[1], (string)values[2], (string)values[3]);
                             break;
                     }
                 }
@@ -391,6 +403,7 @@ namespace Auxilium_Server
                 c.Value.LastAction = DateTime.Now;
 
                 c.Value.Authenticated = true;
+                SendProfile(c);
                 SendLoginBarrage(c);
             }
             else
@@ -528,6 +541,39 @@ namespace Auxilium_Server
             c.Send(data);
         }
 
+        static void HandleEditProfilePacket(Client c, string avatar, string bio, string profile)
+        {
+            if (!(avatar.Contains("http://") || avatar.Contains("https://")))
+                avatar = avatar.Insert(0, "http://");
+            if (!(profile.Contains("http://") || profile.Contains("https://")))
+                profile = profile.Insert(0, "http://");
+
+            Uri uri = null;
+            bool validProfile = false;
+            if (Uri.TryCreate(profile, UriKind.RelativeOrAbsolute, out uri))
+                validProfile = (uri.DnsSafeHost.ToLower() == "www.hackforums.net" || uri.DnsSafeHost.ToLower() == "hackforums.net" && Regex.IsMatch(profile, @"^(http:\/\/)*(www\.)*hackforums\.net\/member\.php\?action=profile&uid=\d{1,7}$"));
+
+            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+            q.CommandText = "UPDATE users SET Avatar=@Avatar, Bio=@Bio, ProfileLink=@ProfileLink WHERE Username=@Username;";
+            q.Parameters.AddWithValue("@Username", c.Value.Username);
+            q.Parameters.AddWithValue("@Bio", bio);
+            q.Parameters.AddWithValue("@Avatar", avatar);
+            q.Parameters.AddWithValue("@ProfileLink", validProfile ? profile : "");
+
+            if (q.ExecuteNonQuery() == 1)
+            {
+                byte[] success = Packer.Serialize((byte)ServerPacket.EditProfile, true);
+                c.Send(success);
+            }
+        }
+
+        static void HandleViewProfilePacket(Client c, string username)
+        {
+            Client to = ClientFromUsername(username);
+            if (to != null)
+                SendProfileTo(c, to);
+        }
+
         #endregion
 
         #region " Helper Methods "
@@ -613,6 +659,24 @@ namespace Auxilium_Server
             c.Send(data2);
         }
 
+        static void SendProfile(Client c)
+        {
+            if (c.Value.Authenticated)
+            {
+                byte[] profile = Packer.Serialize(GetProfile(ServerPacket.Profile, c.Value.Username));
+                c.Send(profile);
+            }
+        }
+
+        static void SendProfileTo(Client fromClient, Client toClient)
+        {
+            if (fromClient.Value.Authenticated)
+            {
+                byte[] profile = Packer.Serialize(GetProfile(ServerPacket.ViewProfile, toClient.Value.Username));
+                fromClient.Send(profile);
+            }
+        }
+
         static void FullUserListUpdate()
         {
             for (int i = 0; i < Channels.Length; i++)
@@ -677,6 +741,50 @@ namespace Auxilium_Server
             }*/
 
             return true;
+        }
+
+        static object[] GetProfile(ServerPacket header, string username)
+        {
+            List<object> profile = new List<object>();
+            profile.Add((byte)header);
+
+            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+            q.CommandText = "SELECT * FROM users WHERE Username=@Username;";
+            q.Parameters.AddWithValue("@Username", username);
+
+            MySqlDataReader r = q.ExecuteReader();
+            bool success = r.Read();
+
+            if (success)
+            {
+
+                string link = r.GetString("ProfileLink");
+                int points = r.GetInt32("Points");
+                byte rank = r.GetByte("Rank");
+                string bio = r.GetString("Bio");
+                string avatar = r.GetString("Avatar");
+
+                UserState state = new UserState()
+                {
+                    Points = points,
+                    Rank = rank
+                };
+
+                state.AddPoints(0);
+
+                profile.AddRange(new object[] { username, link, rank, bio, avatar, state.Percentage });
+
+                r.Close();
+                r.Dispose();
+            }
+            else
+            {
+                profile.AddRange(new object[] { username, "", 0, "", "", 0 });
+                r.Close();
+                r.Dispose();
+            }
+
+            return profile.ToArray();
         }
 
         #endregion
@@ -853,7 +961,10 @@ namespace Auxilium_Server
             KeepAlive,
             WakeUp,
             RecentMessages,
-            News
+            News,
+            ViewProfile,
+            Profile,
+            EditProfile
         }
 
         enum ClientPacket : byte
@@ -865,7 +976,9 @@ namespace Auxilium_Server
             ChatMessage,
             PM,
             KeepAlive,
-            News
+            News,
+            ViewProfile,
+            EditProfile
         }
 
         class ChatMessage

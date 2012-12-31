@@ -12,16 +12,18 @@ using Auxilium.Forms;
 using Auxilium.Classes;
 using Microsoft.Win32;
 using System.IO;
-using Microsoft.VisualBasic; // :(
-using Microsoft.VisualBasic.Devices; // :(
 using System.Xml.Serialization;
+using System.Reflection;
+using System.Media;
 
 namespace Auxilium
 {
     public partial class frmMain : Form
     {
-
         #region " Declarations "
+
+        private string Host = "127.0.0.1";
+        private ushort Port = 3357;
 
         private Client Connection;
         private Pack Packer;
@@ -32,7 +34,7 @@ namespace Auxilium
         private int UnreadPMs = 0;
         private List<PrivateMessage> PMs = new List<PrivateMessage>();
 
-        private Audio AudioPlayer = new Audio();//TODO: Handle this differently to ditch the VisualBasic reference.
+        private SoundPlayer AudioPlayer = new SoundPlayer(Properties.Resources.Notify);//TODO: Handle this differently to ditch the VisualBasic reference.
 
         private string Username;
         private int Channel;
@@ -60,12 +62,20 @@ namespace Auxilium
         {
             InitializeComponent();
 
+            for (int i = 1; i < 43; i++)
+            {
+                string name = "Auxilium.Resources.Ranks." + i.ToString() + ".png";
+                Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name);
+                Image img = Image.FromStream(stream);
+                ilUsers.Images.Add(img);
+            }
+
             //Initialize the (de)serializer
             Packer = new Pack();
 
             //Hook events and initialize socket.
             Connection = new Client();
-            Connection.BufferSize = 32767;
+            Connection.BufferSize = 2048;
             Connection.Client_State += Client_State;
             Connection.Client_Fail += Client_Fail;
             Connection.Client_Read += Client_Read;
@@ -84,7 +94,7 @@ namespace Auxilium
         private void frmMain_Shown(object sender, EventArgs e)
         {
             //Hide users online until user is in chat.
-            tslUsersOnline.Visible = false;
+            slblOnline.Visible = false;
             tbUser.Select();
 
             //Because that non-async method below will keep our controls from updating..
@@ -126,6 +136,8 @@ namespace Auxilium
                 }
             }
             LoadSettings();
+
+            this.Text += Application.ProductVersion;
         }
 
         private void CheckForUpdates()
@@ -165,8 +177,8 @@ namespace Auxilium
                 ChangeSignInState(true);
                 ChangeRegisterState(true);
 
-                if (hiddenTab1.SelectedIndex == (int)MenuScreen.Reconnect)
-                    hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
+                if (hiddenMain.SelectedIndex == (int)MenuScreen.Reconnect)
+                    hiddenMain.SelectedIndex = (int)MenuScreen.SignIn;
 
                 tslChatting.Text = "Status: Connected.";
                 if (AutoLogin)
@@ -188,6 +200,8 @@ namespace Auxilium
             try
             {
                 object[] values = Packer.Deserialize(e);
+                if (values == null)
+                    return;
                 ServerPacket packet = (ServerPacket)values[0];
 
                 switch (packet)
@@ -234,6 +248,15 @@ namespace Auxilium
                     case ServerPacket.News:
                         HandleNewsPacket((string)values[1]);
                         break;
+                    case ServerPacket.ViewProfile:
+                        HandleViewProfilePacket((string)values[1], (string)values[2], (byte)values[3], (string)values[4], (string)values[5], (int)values[6]);
+                        break;
+                    case ServerPacket.Profile:
+                        HandleProfilePacket((string)values[1], (string)values[2], (byte)values[3], (string)values[4], (string)values[5], (int)values[6]);
+                        break;
+                    case ServerPacket.EditProfile:
+                        HandleEditProfilePacket((bool)values[1]);
+                        break;
                 }
             }
             catch
@@ -247,6 +270,111 @@ namespace Auxilium
 
         #region " Packet Handlers "
 
+        private void HandleEditProfilePacket(bool success)
+        {
+            if (success)
+            {
+                pbEditSaved.Visible = true;
+                lblEditSaved.Visible = true;
+                new Thread(() =>
+                    {
+                        Thread.Sleep(3000);
+                        Invoke(new MethodInvoker(delegate()
+                        {
+                            pbEditSaved.Visible = false;
+                            lblEditSaved.Visible = false;
+                        }));
+                    }).Start();
+            }
+        }
+
+        private void HandleProfilePacket(string username, string hf, byte rank, string bio, string avatar, int percentage)
+        {
+            if (hiddenMain.SelectedIndex == (int)MenuScreen.EditProfile)
+                return;
+
+            Uri yuri = null;
+            if (!string.IsNullOrWhiteSpace(avatar) && Uri.TryCreate(avatar, UriKind.Absolute, out yuri) && yuri.Scheme == "http")
+            {
+                pbAvatar.Image = Properties.Resources.spinner;
+                WebClient wc = new WebClient() { Proxy = null };
+                wc.DownloadDataCompleted += new DownloadDataCompletedEventHandler((sender, e) =>
+                {
+                    try {
+                        pbEditAvatar.Image = ImageFromResult(e.Result);
+                    } catch {
+                        pbEditAvatar.Image = Properties.Resources.NA;
+                    }
+                });
+                wc.DownloadDataAsync(yuri);
+                chcAvatar.Text = avatar;
+            } else {
+                pbAvatar.Image = Properties.Resources.NA;
+            }
+
+            if (!string.IsNullOrWhiteSpace(hf))
+                chcProfile.Text = hf;
+
+            tbBio.Text = bio;
+
+            pbEditCurrentRank.Image = ilUsers.Images[rank];
+            lblEditCurrentRank.Text = "Current Rank: " + rank.ToString();
+            pbEditNextRank.Image = ilUsers.Images[rank >= 37 ? rank : rank + 1];
+            lblEditNextRank.Text = "Next Rank: " + (rank >= 37 ? rank : rank + 1).ToString();
+            prgEditNextRank.Value = percentage;
+        }
+
+        private void HandleViewProfilePacket(string username, string hf, byte rank, string bio, string avatar, int percentage)
+        {
+            Uri yuri = null;
+            if (!string.IsNullOrWhiteSpace(avatar) && Uri.TryCreate(avatar, UriKind.Absolute, out yuri) && yuri.Scheme == "http")
+            {
+                pbAvatar.Image = Properties.Resources.spinner;
+                WebClient wc = new WebClient() { Proxy = null };
+                wc.DownloadDataCompleted += new DownloadDataCompletedEventHandler((sender, e) =>
+                {
+                    try {
+                        pbAvatar.Image = ImageFromResult(e.Result);
+                    } catch {
+                        pbAvatar.Image = Properties.Resources.NA;
+                    }
+                });
+                wc.DownloadDataAsync(yuri);
+            } else {
+                pbAvatar.Image = Properties.Resources.NA;
+            }
+
+            slUsername.Text = "Viewing profile of " + username;
+
+            if (string.IsNullOrWhiteSpace(bio))
+                rtbBio.Text = "N/A";
+            else
+                rtbBio.Text = bio;
+
+            if (!string.IsNullOrWhiteSpace(hf))
+            {
+                lnkHackForums.Tag = hf;
+                lnkHackForums.Visible = true;
+                lblAsterisk.Visible = true;
+                lblDisclaimer.Visible = true;
+            }
+
+            pbCurrentRank.Image = ilUsers.Images[rank];
+            lblCurrentRank.Text = "Current Rank: " + rank.ToString();
+            pbNextRank.Image = ilUsers.Images[rank >= 37 ? rank : rank + 1];
+            lblNextRank.Text = "Next Rank: " + (rank >= 37 ? rank : rank + 1).ToString();
+            prgNextRank.Value = percentage;
+
+            hiddenMain.SelectedIndex = (int)MenuScreen.ViewProfile;
+        }
+
+        public Image ImageFromResult(byte[] byteArrayIn)
+        {
+            MemoryStream ms = new MemoryStream(byteArrayIn);
+            Image returnImage = Image.FromStream(ms);
+            return returnImage;
+        }
+
         //TODO: Add failure reason parameter?
         private void HandleSignInPacket(bool success)
         {
@@ -255,12 +383,13 @@ namespace Auxilium
             if (success)
             {
                 msMenu.Enabled = true;
-                tslUsersOnline.Visible = true;
+                slblOnline.Visible = true;
                 tslChatting.Text = "Username: " + Username;
 
-                hiddenTab1.SelectedIndex = (int)MenuScreen.Chat;
+                hiddenMain.SelectedIndex = (int)MenuScreen.Chat;
                 rtbMessage.Select();
                 tsmSignOut.Enabled = true;
+                tsmEditProfile.Enabled = true;
             }
             else
             {
@@ -278,7 +407,7 @@ namespace Auxilium
                 niAux.ShowBalloonTip(100, "New Private Message", string.Format("Message From: {0}\nSubject: {1}", user, subject), ToolTipIcon.Info);
 
                 if (AudibleNotification)
-                    AudioPlayer.Play(Properties.Resources.Notify, AudioPlayMode.Background);
+                    AudioPlayer.Play();
 
                 string pt = pMsToolStripMenuItem.Text;
 
@@ -301,7 +430,7 @@ namespace Auxilium
 
             if (success)
             {
-                hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
+                hiddenMain.SelectedIndex = (int)MenuScreen.SignIn;
                 MessageBox.Show("Your new account has been created! Sign in to get started.");
             }
             else
@@ -393,7 +522,7 @@ namespace Auxilium
                 niAux.ShowBalloonTip(100, user.Name, message, ToolTipIcon.Info);
 
                 if (AudibleNotification)
-                    AudioPlayer.Play(Properties.Resources.Notify, AudioPlayMode.Background);
+                    AudioPlayer.Play();
             }
         }
 
@@ -417,7 +546,7 @@ namespace Auxilium
                 niAux.ShowBalloonTip(100, "Global Broadcast", message, ToolTipIcon.Info);
 
                 if (AudibleNotification)
-                    AudioPlayer.Play(Properties.Resources.Notify, AudioPlayMode.Background);
+                    AudioPlayer.Play();
             }
         }
 
@@ -438,7 +567,7 @@ namespace Auxilium
         private void ConnectToServer()
         {
             tslChatting.Text = "Status: Connecting to server...";
-            Connection.Connect("127.0.0.1", 3357);
+            Connection.Connect(Host, Port);
         }
 
         private void HandleBadConnection()
@@ -449,10 +578,10 @@ namespace Auxilium
             InvalidateChat();
 
             msMenu.Enabled = false;
-            tslUsersOnline.Visible = false;
+            slblOnline.Visible = false;
 
             button2.Enabled = true;
-            hiddenTab1.SelectedIndex = (int)MenuScreen.Reconnect;
+            hiddenMain.SelectedIndex = (int)MenuScreen.Reconnect;
             tslChatting.Text = "Status: Connection to server failed or lost.";
         }
 
@@ -551,7 +680,7 @@ namespace Auxilium
 
             lvUsers.EndUpdate();
 
-            tslUsersOnline.Text = "Users Online: " + lvUsers.Items.Count;
+            slblOnline.Text = "Users Online: " + lvUsers.Items.Count;
         }
 
         private Color GetRankColor(byte rank)
@@ -635,12 +764,12 @@ namespace Auxilium
 
         private void btnRegister_Click(object sender, EventArgs e)
         {
-            hiddenTab1.SelectedIndex = (int)MenuScreen.Register;
+            hiddenMain.SelectedIndex = (int)MenuScreen.Register;
         }
 
         private void button3_Click(object sender, EventArgs e)
         {
-            hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
+            hiddenMain.SelectedIndex = (int)MenuScreen.SignIn;
         }
 
         //TODO: Sanitize server side.
@@ -738,56 +867,223 @@ namespace Auxilium
             Environment.Exit(0);
         }
 
+        private void splitContainer2_SplitterMoved(object sender, SplitterEventArgs e)
+        {
+            //Prevents the bottom scroll bars from showing.
+            lvUsers.Columns[0].Width = lvUsers.Width - 5;
+        }
+
+        private void niChat_BalloonTipClicked(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Normal;
+            this.Activate();
+        }
+
+        private void rtbChat_LinkClicked(object sender, LinkClickedEventArgs e)
+        {
+            try
+            {
+                Process.Start(e.LinkText);
+            }
+            catch
+            {
+                //Do nothing.
+            }
+        }
+
+        private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            //Removes the notify icon from the system tray.
+            niAux.Visible = false;
+            niAux.Dispose();
+            Environment.Exit(0);
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (comboBox1.SelectedIndex == Channel)
+                return;
+
+            //Disable chat elements while we switch channels.
+            ChangeChatState(false);
+            InvalidateChat();
+
+            Channel = comboBox1.SelectedIndex;
+
+            byte[] data = Packer.Serialize((byte)ClientPacket.Channel, (byte)comboBox1.SelectedIndex);
+            Connection.Send(data);
+        }
+
+        //TODO: Sanitize server side and locally(?)
+        private void rtbMessage_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (!e.Shift && e.KeyCode == Keys.Enter)
+            {
+                e.SuppressKeyPress = true;
+
+                string message = rtbMessage.Text.Trim();
+
+                if (!string.IsNullOrEmpty(message))
+                {
+                    //Send the chat message to the server.
+                    byte[] data = Packer.Serialize((byte)ClientPacket.ChatMessage, message);
+                    Connection.Send(data);
+
+                    //Show message locally. May want to wait for verification from server.
+                    AppendChat(Color.ForestGreen, Color.DimGray, Username, message);
+
+                    rtbMessage.Clear();
+                }
+            }
+        }
+
+        private void tsmSignOut_Click(object sender, EventArgs e)
+        {
+            tsmSignOut.Enabled = false;
+            tsmEditProfile.Enabled = false;
+            hiddenMain.SelectedIndex = (int)MenuScreen.SignIn;
+
+            ConnectToServer();
+        }
+
+        private void frmMain_Resize(object sender, EventArgs e)
+        {
+            lvUsers.Columns[0].Width = lvUsers.Width - 5;
+            if (WindowState == FormWindowState.Minimized && MinimizeToTray)
+            {
+                this.ShowInTaskbar = false;
+            }
+        }
+
+        private void frmMain_Activated(object sender, EventArgs e)
+        {
+            if (hiddenMain.SelectedIndex == (int)MenuScreen.Chat)
+                rtbMessage.Select();
+        }
+
+        private void pasteToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string s = Clipboard.GetText();
+                rtbMessage.Text += Clipboard.GetText();
+                rtbMessage.SelectionStart += s.Length;
+            }
+            catch { }
+        }
+
+        private void tsmNews_Click(object sender, EventArgs e)
+        {
+            byte[] data = Packer.Serialize((byte)ClientPacket.News);
+            Connection.Send(data);
+        }
+
+        private void tsmGetSource_Click(object sender, EventArgs e)
+        {
+            Process.Start("https://github.com/BanksyHF/Auxilium");
+        }
+
+        private void tsmViewProfile_Click(object sender, EventArgs e)
+        {
+            if (lvUsers.SelectedItems.Count == 1)
+            {
+                byte[] data = Packer.Serialize((byte)ClientPacket.ViewProfile, lvUsers.SelectedItems[0].Text);
+                Connection.Send(data);
+            }
+        }
+
+        private void lnkBack_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            hiddenMain.SelectedIndex = (int)MenuScreen.Chat;
+        }
+
+        private void lnkHackForums_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(lnkHackForums.Tag.ToString());
+        }
+
+        private void tsmEditProfile_Click(object sender, EventArgs e)
+        {
+            hiddenMain.SelectedIndex = (int)MenuScreen.EditProfile;
+        }
+
+        private void lnkCancel_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            hiddenMain.SelectedIndex = (int)MenuScreen.Chat;
+        }
+
+        private void lnkSaveProfile_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            
+            string avatar = chcAvatar.Text;
+            string profile = chcProfile.Text;
+            if (!(avatar.Contains("http://") || avatar.Contains("https://")) && !string.IsNullOrWhiteSpace(avatar))
+                avatar = avatar.Insert(0, "http://");
+            if (!(profile.Contains("http://") || profile.Contains("https://")) && !string.IsNullOrWhiteSpace(avatar))
+                profile = profile.Insert(0, "http://");
+
+            byte[] data = Packer.Serialize((byte)ClientPacket.EditProfile, avatar, tbBio.Text, profile);
+            Connection.Send(data);
+        }
+
+        private void chcAvatar_TextChanged(object sender, EventArgs e)
+        {
+            if (chcAvatar.Text == string.Empty)
+                return;
+
+            Uri yuri = null;
+            string url = chcAvatar.Text;
+            if (!(url.Contains("http://") || url.Contains("https://")))
+                url = url.Insert(0, "http://");
+
+            if (Uri.TryCreate(url, UriKind.Absolute, out yuri) && yuri.Scheme == "http") //Make sure url is valid url before trying to download it.
+            {
+                pbEditAvatar.Image = Properties.Resources.spinner;
+                WebClient wc = new WebClient() { Proxy = null };
+                wc.DownloadDataCompleted += new DownloadDataCompletedEventHandler((x, i) =>
+                {
+                    try {
+                        pbEditAvatar.Image = ImageFromResult(i.Result);
+                    } catch {
+                        pbEditAvatar.Image = Properties.Resources.NA;
+                    }
+                });
+                wc.DownloadDataAsync(yuri);
+            } else {
+                pbEditAvatar.Image = Properties.Resources.NA;
+            }
+        }
+
+        private void tbBio_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.A)
+            {
+                tbBio.SelectAll();
+            }
+        }
+
         #endregion
 
         #region " Options "
 
-
-        private void tsmTray_CheckedChanged(object sender, EventArgs e)
-        {
-            SaveSettings();
-        }
-
-        private void tsmTimestamps_CheckedChanged(object sender, EventArgs e)
-        {
-            SaveSettings();
-        }
-
-        private void tsmChatNotifications_CheckedChanged(object sender, EventArgs e)
-        {
-            SaveSettings();
-        }
-
-        private void toolStripMenuItem1_CheckedChanged(object sender, EventArgs e)
-        {
-            SaveSettings();
-        }
-
-        private void tsmSpaceMessages_CheckedChanged(object sender, EventArgs e)
-        {
-            SaveSettings();
-        }
-
-        private void tsmUserJoinEvents_CheckedChanged(object sender, EventArgs e)
-        {
-            SaveSettings();
-        }
-
-        private void writeMessagesToFileToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        private void tsmWriteMessages_CheckedChanged(object sender, EventArgs e)
         {
             SaveSettings();
             if (WriteMessageToFile)
             {
-                chatLogger = new StreamWriter("chat-" + DateTime.Now.ToFileTime() + ".log");
+                chatLogger = new StreamWriter("chat-" + DateTime.Now.ToFileTimeUtc() + ".log");
                 chatLogger.AutoFlush = true;
-            } else {
-                if (chatLogger.BaseStream != null)
-                {
-                    chatLogger.Flush();
-                    chatLogger.BaseStream.Close();
-                }
-                chatLogger = null;
             }
+            else
+            {
+                chatLogger.Close();
+                chatLogger.Dispose();
+            }
+        }
+
+        private void SettingsChanged(object sender, EventArgs e)
+        {
+            SaveSettings();
         }
 
         private void changeFontToolStripMenuItem_Click(object sender, EventArgs e)
@@ -856,6 +1152,8 @@ namespace Auxilium
             tbPass.Enabled = enable;
             cbRemember.Enabled = enable;
             cbAuto.Enabled = enable;
+            tsmEditProfile.Enabled = enable;
+            tsmSignOut.Enabled = enable;
         }
 
         private void ChangeRegisterState(bool enable)
@@ -947,124 +1245,7 @@ namespace Auxilium
 
         }
 
-        private void splitContainer2_SplitterMoved(object sender, SplitterEventArgs e)
-        {
-            //Prevents the bottom scroll bars from showing.
-            lvUsers.Columns[0].Width = lvUsers.Width - 5;
-        }
-
-        private void niChat_BalloonTipClicked(object sender, EventArgs e)
-        {
-            this.WindowState = FormWindowState.Normal;
-            this.Activate();
-        }
-
-        private void rtbChat_LinkClicked(object sender, LinkClickedEventArgs e)
-        {
-            try
-            {
-                Process.Start(e.LinkText);
-            }
-            catch
-            {
-                //Do nothing.
-            }
-        }
-
-        private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            //Removes the notify icon from the system tray.
-            niAux.Visible = false;
-            niAux.Dispose();
-            Environment.Exit(0);
-        }
-
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (comboBox1.SelectedIndex == Channel)
-                return;
-
-            //Disable chat elements while we switch channels.
-            ChangeChatState(false);
-            InvalidateChat();
-
-            Channel = comboBox1.SelectedIndex;
-
-            byte[] data = Packer.Serialize((byte)ClientPacket.Channel, (byte)comboBox1.SelectedIndex);
-            Connection.Send(data);
-        }
-
-        //TODO: Sanitize server side and locally(?)
-        private void rtbMessage_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (!e.Shift && e.KeyCode == Keys.Enter)
-            {
-                e.SuppressKeyPress = true;
-
-                string message = rtbMessage.Text.Trim();
-
-                if (!string.IsNullOrEmpty(message))
-                {
-                    //Send the chat message to the server.
-                    byte[] data = Packer.Serialize((byte)ClientPacket.ChatMessage, message);
-                    Connection.Send(data);
-
-                    //Show message locally. May want to wait for verification from server.
-                    AppendChat(Color.ForestGreen, Color.DimGray, Username, message);
-
-                    rtbMessage.Clear();
-                }
-            }
-        }
-
-        private void tsmSignOut_Click(object sender, EventArgs e)
-        {
-            tsmSignOut.Enabled = false;
-            hiddenTab1.SelectedIndex = (int)MenuScreen.SignIn;
-
-            byte[] data = Packer.Serialize((byte)ClientPacket.SignOut);
-            Connection.Send(data);
-
-            tslChatting.Text = "Status: Sign in.";
-        }
-
-        private void frmMain_Resize(object sender, EventArgs e)
-        {
-            lvUsers.Columns[0].Width = lvUsers.Width - 5;
-            if (WindowState == FormWindowState.Minimized && MinimizeToTray)
-            {
-                this.ShowInTaskbar = false;
-            }
-        }
-
-        private void frmMain_Activated(object sender, EventArgs e)
-        {
-            if (hiddenTab1.SelectedIndex == (int)MenuScreen.Chat)
-                rtbMessage.Select();
-        }
-
-        private void pasteToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                string s = Clipboard.GetText();
-                rtbMessage.Text += Clipboard.GetText();
-                rtbMessage.SelectionStart += s.Length;
-            }
-            catch { }
-        }
-
-    private void tsmNews_Click(object sender, EventArgs e)
-        {
-            byte[] data = Packer.Serialize((byte)ClientPacket.News);
-            Connection.Send(data);
-        }
-
-        private void tsmGetSource_Click(object sender, EventArgs e)
-        {
-            Process.Start("https://github.com/BanksyHF/Auxilium");
-        }
-
+        
         #endregion
     }
 }

@@ -146,6 +146,50 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="icon-powerful-framework %281%29.ico" />
+    <None Include="Resources\spinner.gif" />
+    <None Include="Resources\29.gif" />
+    <EmbeddedResource Include="Resources\Ranks\1.png" />
+    <EmbeddedResource Include="Resources\Ranks\10.png" />
+    <EmbeddedResource Include="Resources\Ranks\11.png" />
+    <EmbeddedResource Include="Resources\Ranks\12.png" />
+    <EmbeddedResource Include="Resources\Ranks\13.png" />
+    <EmbeddedResource Include="Resources\Ranks\14.png" />
+    <EmbeddedResource Include="Resources\Ranks\15.png" />
+    <EmbeddedResource Include="Resources\Ranks\16.png" />
+    <EmbeddedResource Include="Resources\Ranks\17.png" />
+    <EmbeddedResource Include="Resources\Ranks\18.png" />
+    <EmbeddedResource Include="Resources\Ranks\19.png" />
+    <EmbeddedResource Include="Resources\Ranks\2.png" />
+    <EmbeddedResource Include="Resources\Ranks\20.png" />
+    <EmbeddedResource Include="Resources\Ranks\21.png" />
+    <EmbeddedResource Include="Resources\Ranks\22.png" />
+    <EmbeddedResource Include="Resources\Ranks\23.png" />
+    <EmbeddedResource Include="Resources\Ranks\24.png" />
+    <EmbeddedResource Include="Resources\Ranks\25.png" />
+    <EmbeddedResource Include="Resources\Ranks\26.png" />
+    <EmbeddedResource Include="Resources\Ranks\27.png" />
+    <EmbeddedResource Include="Resources\Ranks\28.png" />
+    <EmbeddedResource Include="Resources\Ranks\29.png" />
+    <EmbeddedResource Include="Resources\Ranks\3.png" />
+    <EmbeddedResource Include="Resources\Ranks\30.png" />
+    <EmbeddedResource Include="Resources\Ranks\31.png" />
+    <EmbeddedResource Include="Resources\Ranks\32.png" />
+    <EmbeddedResource Include="Resources\Ranks\33.png" />
+    <EmbeddedResource Include="Resources\Ranks\34.png" />
+    <EmbeddedResource Include="Resources\Ranks\35.png" />
+    <EmbeddedResource Include="Resources\Ranks\36.png" />
+    <EmbeddedResource Include="Resources\Ranks\37.png" />
+    <EmbeddedResource Include="Resources\Ranks\38.png" />
+    <EmbeddedResource Include="Resources\Ranks\39.png" />
+    <EmbeddedResource Include="Resources\Ranks\4.png" />
+    <EmbeddedResource Include="Resources\Ranks\40.png" />
+    <EmbeddedResource Include="Resources\Ranks\41.png" />
+    <EmbeddedResource Include="Resources\Ranks\42.png" />
+    <EmbeddedResource Include="Resources\Ranks\5.png" />
+    <EmbeddedResource Include="Resources\Ranks\6.png" />
+    <EmbeddedResource Include="Resources\Ranks\7.png" />
+    <EmbeddedResource Include="Resources\Ranks\8.png" />
+    <EmbeddedResource Include="Resources\Ranks\9.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
