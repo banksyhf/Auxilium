@@ -20,5 +20,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `Rank` tinyint(6) NOT NULL,
   `Ban` tinyint(1) NOT NULL,
   `Mute` tinyint(1) NOT NULL,
+  `Avatar` text NOT NULL
+  `Bio` text NOT NULL
+  `ProfileLink` text NOT NULL
   PRIMARY KEY (`Username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
