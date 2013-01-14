@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows.Forms;
+﻿using System.Collections.Generic;
 
 namespace Auxilium.Classes
 {
@@ -11,7 +8,7 @@ namespace Auxilium.Classes
         {
             int compareResult = 0;
 
-            compareResult += x.Name.CompareTo(y.Name);
+            compareResult += string.Compare(x.Name, y.Name, System.StringComparison.Ordinal);
             compareResult += -(x.Rank.CompareTo(y.Rank) * 2);
 
             if (x.Idle && !y.Idle)

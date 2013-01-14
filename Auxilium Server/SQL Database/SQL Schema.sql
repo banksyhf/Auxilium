@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 INSERT INTO `settings` (`motd`, `news`) VALUES
-('', 'testing\ntest');
+('', '');
 
 CREATE TABLE IF NOT EXISTS `users` (
   `Username` varchar(16) NOT NULL,
@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `Rank` tinyint(6) NOT NULL,
   `Ban` tinyint(1) NOT NULL,
   `Mute` tinyint(1) NOT NULL,
-  `Avatar` text NOT NULL
-  `Bio` text NOT NULL
+  `Avatar` text NOT NULL,
+  `Bio` text NOT NULL,
   `ProfileLink` text NOT NULL
   PRIMARY KEY (`Username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;

@@ -37,7 +37,7 @@
             this.menuToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmEditProfile = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmSignOut = new System.Windows.Forms.ToolStripMenuItem();
-            this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmOptions = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmTimestamps = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmChatNotifications = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmTray = new System.Windows.Forms.ToolStripMenuItem();
@@ -47,16 +47,22 @@
             this.tsmWriteMessages = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.changeFontToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.tsmClearChat = new System.Windows.Forms.ToolStripMenuItem();
             this.pMsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmNews = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmDonations = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.tsmVersion = new System.Windows.Forms.ToolStripMenuItem();
+            this.tsmPing = new System.Windows.Forms.ToolStripMenuItem();
             this.pauseChatToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmGetSource = new System.Windows.Forms.ToolStripMenuItem();
             this.sStatus = new System.Windows.Forms.StatusStrip();
             this.tslChatting = new System.Windows.Forms.ToolStripStatusLabel();
-            this.toolStripStatusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
-            this.slblOnline = new System.Windows.Forms.ToolStripStatusLabel();
+            this.tslSpacer = new System.Windows.Forms.ToolStripStatusLabel();
+            this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.tslOnline = new System.Windows.Forms.ToolStripStatusLabel();
             this.cmsUsers = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.sendPMToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tsmViewProfile = new System.Windows.Forms.ToolStripMenuItem();
@@ -96,17 +102,17 @@
             this.tpViewProfile = new System.Windows.Forms.TabPage();
             this.lnkBack = new System.Windows.Forms.LinkLabel();
             this.lblAsterisk = new System.Windows.Forms.Label();
-            this.pbCurrentRank = new System.Windows.Forms.PictureBox();
             this.lblNextRank = new System.Windows.Forms.Label();
-            this.pbNextRank = new System.Windows.Forms.PictureBox();
             this.lblCurrentRank = new System.Windows.Forms.Label();
             this.prgNextRank = new System.Windows.Forms.ProgressBar();
             this.slUsername = new System.Windows.Forms.Label();
             this.lnkHackForums = new System.Windows.Forms.LinkLabel();
             this.rtbBio = new System.Windows.Forms.RichTextBox();
             this.label3 = new System.Windows.Forms.Label();
-            this.pbAvatar = new System.Windows.Forms.PictureBox();
             this.lblDisclaimer = new System.Windows.Forms.Label();
+            this.pbCurrentRank = new System.Windows.Forms.PictureBox();
+            this.pbNextRank = new System.Windows.Forms.PictureBox();
+            this.pbAvatar = new System.Windows.Forms.PictureBox();
             this.tpEditProfile = new System.Windows.Forms.TabPage();
             this.lblEditSaved = new System.Windows.Forms.Label();
             this.pbEditSaved = new System.Windows.Forms.PictureBox();
@@ -165,31 +171,31 @@
             // 
             // cmsNotify
             // 
-            this.cmsNotify.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.cmsNotify.BackColor = System.Drawing.SystemColors.Control;
+            this.cmsNotify.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cmsNotify.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.toolStripMenuItem2});
             this.cmsNotify.Name = "cmsClipboard";
             this.cmsNotify.ShowImageMargin = false;
-            this.cmsNotify.Size = new System.Drawing.Size(66, 26);
+            this.cmsNotify.Size = new System.Drawing.Size(68, 26);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
-            this.toolStripMenuItem2.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.toolStripMenuItem2.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(65, 22);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(67, 22);
             this.toolStripMenuItem2.Text = "Exit";
+            this.toolStripMenuItem2.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             this.toolStripMenuItem2.Click += new System.EventHandler(this.toolStripMenuItem2_Click);
             // 
             // msMenu
             // 
-            this.msMenu.BackColor = System.Drawing.Color.Transparent;
+            this.msMenu.BackColor = System.Drawing.SystemColors.Control;
             this.msMenu.Enabled = false;
             this.msMenu.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.msMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.menuToolStripMenuItem,
-            this.optionsToolStripMenuItem,
+            this.tsmOptions,
             this.pMsToolStripMenuItem,
             this.helpToolStripMenuItem,
             this.pauseChatToolStripMenuItem,
@@ -197,7 +203,7 @@
             this.msMenu.Location = new System.Drawing.Point(0, 0);
             this.msMenu.Name = "msMenu";
             this.msMenu.Padding = new System.Windows.Forms.Padding(0, 2, 0, 0);
-            this.msMenu.Size = new System.Drawing.Size(618, 24);
+            this.msMenu.Size = new System.Drawing.Size(608, 24);
             this.msMenu.TabIndex = 13;
             this.msMenu.Text = "menuStrip1";
             // 
@@ -216,7 +222,7 @@
             this.tsmEditProfile.Enabled = false;
             this.tsmEditProfile.Image = ((System.Drawing.Image)(resources.GetObject("tsmEditProfile.Image")));
             this.tsmEditProfile.Name = "tsmEditProfile";
-            this.tsmEditProfile.Size = new System.Drawing.Size(152, 22);
+            this.tsmEditProfile.Size = new System.Drawing.Size(125, 22);
             this.tsmEditProfile.Text = "Edit Profile";
             this.tsmEditProfile.Click += new System.EventHandler(this.tsmEditProfile_Click);
             // 
@@ -225,13 +231,13 @@
             this.tsmSignOut.Enabled = false;
             this.tsmSignOut.Image = ((System.Drawing.Image)(resources.GetObject("tsmSignOut.Image")));
             this.tsmSignOut.Name = "tsmSignOut";
-            this.tsmSignOut.Size = new System.Drawing.Size(152, 22);
+            this.tsmSignOut.Size = new System.Drawing.Size(125, 22);
             this.tsmSignOut.Text = "Sign Out";
             this.tsmSignOut.Click += new System.EventHandler(this.tsmSignOut_Click);
             // 
-            // optionsToolStripMenuItem
+            // tsmOptions
             // 
-            this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.tsmOptions.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tsmTimestamps,
             this.tsmChatNotifications,
             this.tsmTray,
@@ -240,11 +246,13 @@
             this.tsmUserJoinEvents,
             this.tsmWriteMessages,
             this.toolStripSeparator1,
-            this.changeFontToolStripMenuItem});
-            this.optionsToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("optionsToolStripMenuItem.Image")));
-            this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
-            this.optionsToolStripMenuItem.Size = new System.Drawing.Size(73, 22);
-            this.optionsToolStripMenuItem.Text = "Options";
+            this.changeFontToolStripMenuItem,
+            this.toolStripSeparator3,
+            this.tsmClearChat});
+            this.tsmOptions.Image = ((System.Drawing.Image)(resources.GetObject("tsmOptions.Image")));
+            this.tsmOptions.Name = "tsmOptions";
+            this.tsmOptions.Size = new System.Drawing.Size(73, 22);
+            this.tsmOptions.Text = "Options";
             // 
             // tsmTimestamps
             // 
@@ -320,6 +328,18 @@
             this.changeFontToolStripMenuItem.Text = "Change Font..";
             this.changeFontToolStripMenuItem.Click += new System.EventHandler(this.changeFontToolStripMenuItem_Click);
             // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            this.toolStripSeparator3.Size = new System.Drawing.Size(215, 6);
+            // 
+            // tsmClearChat
+            // 
+            this.tsmClearChat.Name = "tsmClearChat";
+            this.tsmClearChat.Size = new System.Drawing.Size(218, 22);
+            this.tsmClearChat.Text = "Clear Chat";
+            this.tsmClearChat.Click += new System.EventHandler(this.tsmClearChat_Click);
+            // 
             // pMsToolStripMenuItem
             // 
             this.pMsToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("pMsToolStripMenuItem.Image")));
@@ -332,7 +352,10 @@
             // 
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tsmNews,
-            this.tsmDonations});
+            this.tsmDonations,
+            this.toolStripSeparator2,
+            this.tsmVersion,
+            this.tsmPing});
             this.helpToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("helpToolStripMenuItem.Image")));
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(56, 22);
@@ -353,6 +376,23 @@
             this.tsmDonations.Size = new System.Drawing.Size(183, 22);
             this.tsmDonations.Text = "Donate (Server Costs)";
             this.tsmDonations.Click += new System.EventHandler(this.tsmDonations_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(180, 6);
+            // 
+            // tsmVersion
+            // 
+            this.tsmVersion.Name = "tsmVersion";
+            this.tsmVersion.Size = new System.Drawing.Size(183, 22);
+            this.tsmVersion.Text = "Version: ";
+            // 
+            // tsmPing
+            // 
+            this.tsmPing.Name = "tsmPing";
+            this.tsmPing.Size = new System.Drawing.Size(183, 22);
+            this.tsmPing.Text = "Ping: ";
             // 
             // pauseChatToolStripMenuItem
             // 
@@ -376,11 +416,12 @@
             // 
             this.sStatus.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.tslChatting,
-            this.toolStripStatusLabel2,
-            this.slblOnline});
+            this.tslSpacer,
+            this.toolStripStatusLabel1,
+            this.tslOnline});
             this.sStatus.Location = new System.Drawing.Point(0, 343);
             this.sStatus.Name = "sStatus";
-            this.sStatus.Size = new System.Drawing.Size(618, 22);
+            this.sStatus.Size = new System.Drawing.Size(608, 22);
             this.sStatus.SizingGrip = false;
             this.sStatus.TabIndex = 14;
             this.sStatus.Text = "statusStrip1";
@@ -394,23 +435,30 @@
             this.tslChatting.Text = "Status: Checking for updates..";
             this.tslChatting.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
-            // toolStripStatusLabel2
+            // tslSpacer
             // 
-            this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-            this.toolStripStatusLabel2.Size = new System.Drawing.Size(155, 17);
-            this.toolStripStatusLabel2.Spring = true;
-            this.toolStripStatusLabel2.Text = "      ";
+            this.tslSpacer.Name = "tslSpacer";
+            this.tslSpacer.Size = new System.Drawing.Size(348, 17);
+            this.tslSpacer.Spring = true;
+            this.tslSpacer.Text = "      ";
             // 
-            // slblOnline
+            // toolStripStatusLabel1
             // 
-            this.slblOnline.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.slblOnline.Margin = new System.Windows.Forms.Padding(0, 3, -6, 2);
-            this.slblOnline.Name = "slblOnline";
-            this.slblOnline.Size = new System.Drawing.Size(85, 17);
-            this.slblOnline.Text = "Users Online: 0";
+            this.toolStripStatusLabel1.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 17);
+            // 
+            // tslOnline
+            // 
+            this.tslOnline.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tslOnline.Margin = new System.Windows.Forms.Padding(0, 3, -6, 2);
+            this.tslOnline.Name = "tslOnline";
+            this.tslOnline.Size = new System.Drawing.Size(88, 17);
+            this.tslOnline.Text = "Users Online: 0 ";
             // 
             // cmsUsers
             // 
+            this.cmsUsers.BackColor = System.Drawing.SystemColors.Control;
             this.cmsUsers.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.sendPMToolStripMenuItem,
             this.tsmViewProfile});
@@ -442,36 +490,39 @@
             // 
             // cmsClipboard
             // 
+            this.cmsClipboard.BackColor = System.Drawing.SystemColors.Control;
             this.cmsClipboard.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cmsClipboard.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.pasteToolStripMenuItem});
             this.cmsClipboard.Name = "cmsClipboard";
-            this.cmsClipboard.ShowImageMargin = false;
-            this.cmsClipboard.Size = new System.Drawing.Size(75, 26);
+            this.cmsClipboard.Size = new System.Drawing.Size(100, 26);
             // 
             // pasteToolStripMenuItem
             // 
             this.pasteToolStripMenuItem.Alignment = System.Windows.Forms.ToolStripItemAlignment.Right;
-            this.pasteToolStripMenuItem.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.pasteToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("pasteToolStripMenuItem.Image")));
+            this.pasteToolStripMenuItem.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.pasteToolStripMenuItem.ImageScaling = System.Windows.Forms.ToolStripItemImageScaling.None;
             this.pasteToolStripMenuItem.Name = "pasteToolStripMenuItem";
-            this.pasteToolStripMenuItem.Size = new System.Drawing.Size(74, 22);
+            this.pasteToolStripMenuItem.Size = new System.Drawing.Size(99, 22);
             this.pasteToolStripMenuItem.Text = "Paste";
             this.pasteToolStripMenuItem.Click += new System.EventHandler(this.pasteToolStripMenuItem_Click);
             // 
             // cmsChatClipboard
             // 
+            this.cmsChatClipboard.BackColor = System.Drawing.SystemColors.Control;
             this.cmsChatClipboard.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.cmsChatClipboard.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.copyToolStripMenuItem});
             this.cmsChatClipboard.Name = "contextMenuStrip1";
-            this.cmsChatClipboard.ShowImageMargin = false;
-            this.cmsChatClipboard.Size = new System.Drawing.Size(72, 26);
+            this.cmsChatClipboard.Size = new System.Drawing.Size(97, 26);
             // 
             // copyToolStripMenuItem
             // 
+            this.copyToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("copyToolStripMenuItem.Image")));
+            this.copyToolStripMenuItem.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
-            this.copyToolStripMenuItem.Size = new System.Drawing.Size(71, 22);
+            this.copyToolStripMenuItem.Size = new System.Drawing.Size(96, 22);
             this.copyToolStripMenuItem.Text = "Copy";
             this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
             // 
@@ -487,13 +538,13 @@
             this.hiddenMain.Controls.Add(this.tpViewProfile);
             this.hiddenMain.Controls.Add(this.tpEditProfile);
             this.hiddenMain.Cursor = System.Windows.Forms.Cursors.Default;
-            this.hiddenMain.DesignerIndex = 5;
+            this.hiddenMain.DesignerIndex = 2;
             this.hiddenMain.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.hiddenMain.Location = new System.Drawing.Point(9, 32);
             this.hiddenMain.Margin = new System.Windows.Forms.Padding(0, 8, 0, 8);
             this.hiddenMain.Name = "hiddenMain";
             this.hiddenMain.SelectedIndex = 0;
-            this.hiddenMain.Size = new System.Drawing.Size(600, 303);
+            this.hiddenMain.Size = new System.Drawing.Size(590, 303);
             this.hiddenMain.TabIndex = 22;
             // 
             // tpLogin
@@ -511,7 +562,7 @@
             this.tpLogin.Location = new System.Drawing.Point(0, 0);
             this.tpLogin.Name = "tpLogin";
             this.tpLogin.Padding = new System.Windows.Forms.Padding(3);
-            this.tpLogin.Size = new System.Drawing.Size(600, 303);
+            this.tpLogin.Size = new System.Drawing.Size(590, 303);
             this.tpLogin.TabIndex = 0;
             this.tpLogin.Text = "tabPage1";
             // 
@@ -531,7 +582,7 @@
             this.cbAuto.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.cbAuto.AutoSize = true;
             this.cbAuto.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cbAuto.Location = new System.Drawing.Point(252, 147);
+            this.cbAuto.Location = new System.Drawing.Point(241, 163);
             this.cbAuto.Name = "cbAuto";
             this.cbAuto.Size = new System.Drawing.Size(147, 16);
             this.cbAuto.TabIndex = 13;
@@ -543,7 +594,7 @@
             this.cbRemember.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.cbRemember.AutoSize = true;
             this.cbRemember.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.cbRemember.Location = new System.Drawing.Point(252, 125);
+            this.cbRemember.Location = new System.Drawing.Point(241, 141);
             this.cbRemember.Name = "cbRemember";
             this.cbRemember.Size = new System.Drawing.Size(95, 16);
             this.cbRemember.TabIndex = 12;
@@ -557,7 +608,7 @@
             this.btnRegister.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnRegister.Image = ((System.Drawing.Image)(resources.GetObject("btnRegister.Image")));
             this.btnRegister.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnRegister.Location = new System.Drawing.Point(252, 202);
+            this.btnRegister.Location = new System.Drawing.Point(241, 218);
             this.btnRegister.Name = "btnRegister";
             this.btnRegister.Size = new System.Drawing.Size(159, 27);
             this.btnRegister.TabIndex = 11;
@@ -572,7 +623,7 @@
             this.btnLogin.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnLogin.Image = ((System.Drawing.Image)(resources.GetObject("btnLogin.Image")));
             this.btnLogin.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnLogin.Location = new System.Drawing.Point(252, 169);
+            this.btnLogin.Location = new System.Drawing.Point(241, 185);
             this.btnLogin.Name = "btnLogin";
             this.btnLogin.Size = new System.Drawing.Size(159, 27);
             this.btnLogin.TabIndex = 10;
@@ -584,7 +635,7 @@
             // 
             this.tbUser.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.tbUser.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbUser.Location = new System.Drawing.Point(252, 73);
+            this.tbUser.Location = new System.Drawing.Point(241, 89);
             this.tbUser.Name = "tbUser";
             this.tbUser.Size = new System.Drawing.Size(159, 21);
             this.tbUser.TabIndex = 8;
@@ -595,7 +646,7 @@
             this.lbUser.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.lbUser.AutoSize = true;
             this.lbUser.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lbUser.Location = new System.Drawing.Point(190, 77);
+            this.lbUser.Location = new System.Drawing.Point(179, 93);
             this.lbUser.Name = "lbUser";
             this.lbUser.Size = new System.Drawing.Size(56, 12);
             this.lbUser.TabIndex = 9;
@@ -605,7 +656,7 @@
             // 
             this.tbPass.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.tbPass.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.tbPass.Location = new System.Drawing.Point(252, 99);
+            this.tbPass.Location = new System.Drawing.Point(241, 115);
             this.tbPass.Name = "tbPass";
             this.tbPass.PasswordChar = '•';
             this.tbPass.Size = new System.Drawing.Size(159, 21);
@@ -617,7 +668,7 @@
             this.lbPass.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.lbPass.AutoSize = true;
             this.lbPass.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lbPass.Location = new System.Drawing.Point(190, 103);
+            this.lbPass.Location = new System.Drawing.Point(179, 119);
             this.lbPass.Name = "lbPass";
             this.lbPass.Size = new System.Drawing.Size(53, 12);
             this.lbPass.TabIndex = 10;
@@ -635,7 +686,7 @@
             this.tpRegister.Location = new System.Drawing.Point(0, 0);
             this.tpRegister.Name = "tpRegister";
             this.tpRegister.Padding = new System.Windows.Forms.Padding(3);
-            this.tpRegister.Size = new System.Drawing.Size(600, 303);
+            this.tpRegister.Size = new System.Drawing.Size(590, 303);
             this.tpRegister.TabIndex = 1;
             this.tpRegister.Text = "tabPage2";
             // 
@@ -643,7 +694,7 @@
             // 
             this.button3.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.button3.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.button3.Location = new System.Drawing.Point(252, 165);
+            this.button3.Location = new System.Drawing.Point(247, 165);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(77, 27);
             this.button3.TabIndex = 12;
@@ -655,7 +706,7 @@
             // 
             this.button1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.button1.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.button1.Location = new System.Drawing.Point(334, 165);
+            this.button1.Location = new System.Drawing.Point(329, 165);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(77, 27);
             this.button1.TabIndex = 11;
@@ -667,7 +718,7 @@
             // 
             this.textBox1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.textBox1.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBox1.Location = new System.Drawing.Point(252, 138);
+            this.textBox1.Location = new System.Drawing.Point(247, 138);
             this.textBox1.Name = "textBox1";
             this.textBox1.PasswordChar = '•';
             this.textBox1.Size = new System.Drawing.Size(159, 21);
@@ -678,7 +729,7 @@
             this.label1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.label1.Location = new System.Drawing.Point(190, 141);
+            this.label1.Location = new System.Drawing.Point(185, 141);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(53, 12);
             this.label1.TabIndex = 9;
@@ -689,7 +740,7 @@
             this.label2.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.label2.Location = new System.Drawing.Point(190, 115);
+            this.label2.Location = new System.Drawing.Point(185, 115);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(56, 12);
             this.label2.TabIndex = 8;
@@ -699,7 +750,7 @@
             // 
             this.textBox2.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.textBox2.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBox2.Location = new System.Drawing.Point(252, 111);
+            this.textBox2.Location = new System.Drawing.Point(247, 111);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(159, 21);
             this.textBox2.TabIndex = 7;
@@ -710,7 +761,7 @@
             this.tpChat.Controls.Add(this.splitContainer2);
             this.tpChat.Location = new System.Drawing.Point(0, 0);
             this.tpChat.Name = "tpChat";
-            this.tpChat.Size = new System.Drawing.Size(600, 303);
+            this.tpChat.Size = new System.Drawing.Size(590, 303);
             this.tpChat.TabIndex = 2;
             // 
             // splitContainer2
@@ -729,8 +780,8 @@
             // 
             this.splitContainer2.Panel2.Controls.Add(this.lvUsers);
             this.splitContainer2.Panel2.Controls.Add(this.comboBox1);
-            this.splitContainer2.Size = new System.Drawing.Size(600, 303);
-            this.splitContainer2.SplitterDistance = 443;
+            this.splitContainer2.Size = new System.Drawing.Size(590, 303);
+            this.splitContainer2.SplitterDistance = 433;
             this.splitContainer2.TabIndex = 21;
             this.splitContainer2.SplitterMoved += new System.Windows.Forms.SplitterEventHandler(this.splitContainer2_SplitterMoved);
             // 
@@ -750,7 +801,7 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.rtbMessage);
             this.splitContainer1.Panel2MinSize = 20;
-            this.splitContainer1.Size = new System.Drawing.Size(443, 303);
+            this.splitContainer1.Size = new System.Drawing.Size(433, 303);
             this.splitContainer1.SplitterDistance = 258;
             this.splitContainer1.TabIndex = 20;
             // 
@@ -766,7 +817,7 @@
             this.rtbChat.Name = "rtbChat";
             this.rtbChat.ReadOnly = true;
             this.rtbChat.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.ForcedVertical;
-            this.rtbChat.Size = new System.Drawing.Size(443, 258);
+            this.rtbChat.Size = new System.Drawing.Size(433, 258);
             this.rtbChat.TabIndex = 8;
             this.rtbChat.Text = "";
             this.rtbChat.LinkClicked += new System.Windows.Forms.LinkClickedEventHandler(this.rtbChat_LinkClicked);
@@ -780,7 +831,7 @@
             this.rtbMessage.Location = new System.Drawing.Point(0, 0);
             this.rtbMessage.MaxLength = 1024;
             this.rtbMessage.Name = "rtbMessage";
-            this.rtbMessage.Size = new System.Drawing.Size(443, 41);
+            this.rtbMessage.Size = new System.Drawing.Size(433, 41);
             this.rtbMessage.TabIndex = 12;
             this.rtbMessage.Text = "";
             this.rtbMessage.KeyDown += new System.Windows.Forms.KeyEventHandler(this.rtbMessage_KeyDown);
@@ -826,7 +877,7 @@
             this.tpReconnect.Controls.Add(this.button2);
             this.tpReconnect.Location = new System.Drawing.Point(0, 0);
             this.tpReconnect.Name = "tpReconnect";
-            this.tpReconnect.Size = new System.Drawing.Size(600, 303);
+            this.tpReconnect.Size = new System.Drawing.Size(590, 303);
             this.tpReconnect.TabIndex = 3;
             this.tpReconnect.Text = "tabPage4";
             // 
@@ -834,7 +885,7 @@
             // 
             this.button2.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.button2.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.button2.Location = new System.Drawing.Point(221, 138);
+            this.button2.Location = new System.Drawing.Point(216, 138);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(159, 27);
             this.button2.TabIndex = 12;
@@ -847,20 +898,20 @@
             this.tpViewProfile.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.tpViewProfile.Controls.Add(this.lnkBack);
             this.tpViewProfile.Controls.Add(this.lblAsterisk);
-            this.tpViewProfile.Controls.Add(this.pbCurrentRank);
             this.tpViewProfile.Controls.Add(this.lblNextRank);
-            this.tpViewProfile.Controls.Add(this.pbNextRank);
             this.tpViewProfile.Controls.Add(this.lblCurrentRank);
             this.tpViewProfile.Controls.Add(this.prgNextRank);
             this.tpViewProfile.Controls.Add(this.slUsername);
             this.tpViewProfile.Controls.Add(this.lnkHackForums);
             this.tpViewProfile.Controls.Add(this.rtbBio);
             this.tpViewProfile.Controls.Add(this.label3);
-            this.tpViewProfile.Controls.Add(this.pbAvatar);
             this.tpViewProfile.Controls.Add(this.lblDisclaimer);
+            this.tpViewProfile.Controls.Add(this.pbCurrentRank);
+            this.tpViewProfile.Controls.Add(this.pbNextRank);
+            this.tpViewProfile.Controls.Add(this.pbAvatar);
             this.tpViewProfile.Location = new System.Drawing.Point(0, 0);
             this.tpViewProfile.Name = "tpViewProfile";
-            this.tpViewProfile.Size = new System.Drawing.Size(600, 303);
+            this.tpViewProfile.Size = new System.Drawing.Size(590, 303);
             this.tpViewProfile.TabIndex = 4;
             this.tpViewProfile.UseVisualStyleBackColor = true;
             // 
@@ -869,7 +920,7 @@
             this.lnkBack.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.lnkBack.AutoSize = true;
             this.lnkBack.Font = new System.Drawing.Font("Verdana", 8.25F);
-            this.lnkBack.Location = new System.Drawing.Point(545, 280);
+            this.lnkBack.Location = new System.Drawing.Point(535, 280);
             this.lnkBack.Name = "lnkBack";
             this.lnkBack.Size = new System.Drawing.Size(35, 13);
             this.lnkBack.TabIndex = 52;
@@ -888,14 +939,6 @@
             this.lblAsterisk.Text = "*";
             this.lblAsterisk.Visible = false;
             // 
-            // pbCurrentRank
-            // 
-            this.pbCurrentRank.Location = new System.Drawing.Point(22, 153);
-            this.pbCurrentRank.Name = "pbCurrentRank";
-            this.pbCurrentRank.Size = new System.Drawing.Size(24, 24);
-            this.pbCurrentRank.TabIndex = 50;
-            this.pbCurrentRank.TabStop = false;
-            // 
             // lblNextRank
             // 
             this.lblNextRank.AutoSize = true;
@@ -904,14 +947,6 @@
             this.lblNextRank.Size = new System.Drawing.Size(71, 12);
             this.lblNextRank.TabIndex = 49;
             this.lblNextRank.Text = "Next Rank: 1";
-            // 
-            // pbNextRank
-            // 
-            this.pbNextRank.Location = new System.Drawing.Point(117, 153);
-            this.pbNextRank.Name = "pbNextRank";
-            this.pbNextRank.Size = new System.Drawing.Size(24, 24);
-            this.pbNextRank.TabIndex = 48;
-            this.pbNextRank.TabStop = false;
             // 
             // lblCurrentRank
             // 
@@ -944,10 +979,10 @@
             this.lnkHackForums.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lnkHackForums.Location = new System.Drawing.Point(29, 248);
             this.lnkHackForums.Name = "lnkHackForums";
-            this.lnkHackForums.Size = new System.Drawing.Size(64, 12);
+            this.lnkHackForums.Size = new System.Drawing.Size(81, 12);
             this.lnkHackForums.TabIndex = 43;
             this.lnkHackForums.TabStop = true;
-            this.lnkHackForums.Text = "View Profile";
+            this.lnkHackForums.Text = "View HF Profile";
             this.lnkHackForums.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.lnkHackForums_LinkClicked);
             // 
             // rtbBio
@@ -961,7 +996,7 @@
             this.rtbBio.Name = "rtbBio";
             this.rtbBio.ReadOnly = true;
             this.rtbBio.ScrollBars = System.Windows.Forms.RichTextBoxScrollBars.Vertical;
-            this.rtbBio.Size = new System.Drawing.Size(397, 228);
+            this.rtbBio.Size = new System.Drawing.Size(387, 228);
             this.rtbBio.TabIndex = 42;
             this.rtbBio.Text = "";
             // 
@@ -974,16 +1009,6 @@
             this.label3.TabIndex = 41;
             this.label3.Text = "Bio:";
             // 
-            // pbAvatar
-            // 
-            this.pbAvatar.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pbAvatar.Location = new System.Drawing.Point(22, 27);
-            this.pbAvatar.Name = "pbAvatar";
-            this.pbAvatar.Size = new System.Drawing.Size(120, 120);
-            this.pbAvatar.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pbAvatar.TabIndex = 40;
-            this.pbAvatar.TabStop = false;
-            // 
             // lblDisclaimer
             // 
             this.lblDisclaimer.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
@@ -995,6 +1020,32 @@
             this.lblDisclaimer.Size = new System.Drawing.Size(144, 11);
             this.lblDisclaimer.TabIndex = 44;
             this.lblDisclaimer.Text = "* may not be users actual hackforums link.";
+            // 
+            // pbCurrentRank
+            // 
+            this.pbCurrentRank.Location = new System.Drawing.Point(22, 153);
+            this.pbCurrentRank.Name = "pbCurrentRank";
+            this.pbCurrentRank.Size = new System.Drawing.Size(24, 24);
+            this.pbCurrentRank.TabIndex = 50;
+            this.pbCurrentRank.TabStop = false;
+            // 
+            // pbNextRank
+            // 
+            this.pbNextRank.Location = new System.Drawing.Point(117, 153);
+            this.pbNextRank.Name = "pbNextRank";
+            this.pbNextRank.Size = new System.Drawing.Size(24, 24);
+            this.pbNextRank.TabIndex = 48;
+            this.pbNextRank.TabStop = false;
+            // 
+            // pbAvatar
+            // 
+            this.pbAvatar.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pbAvatar.Location = new System.Drawing.Point(22, 27);
+            this.pbAvatar.Name = "pbAvatar";
+            this.pbAvatar.Size = new System.Drawing.Size(120, 120);
+            this.pbAvatar.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pbAvatar.TabIndex = 40;
+            this.pbAvatar.TabStop = false;
             // 
             // tpEditProfile
             // 
@@ -1017,7 +1068,7 @@
             this.tpEditProfile.Controls.Add(this.lblHackForums);
             this.tpEditProfile.Location = new System.Drawing.Point(0, 0);
             this.tpEditProfile.Name = "tpEditProfile";
-            this.tpEditProfile.Size = new System.Drawing.Size(600, 303);
+            this.tpEditProfile.Size = new System.Drawing.Size(590, 303);
             this.tpEditProfile.TabIndex = 5;
             this.tpEditProfile.UseVisualStyleBackColor = true;
             // 
@@ -1026,7 +1077,7 @@
             this.lblEditSaved.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.lblEditSaved.AutoSize = true;
             this.lblEditSaved.ForeColor = System.Drawing.Color.ForestGreen;
-            this.lblEditSaved.Location = new System.Drawing.Point(433, 283);
+            this.lblEditSaved.Location = new System.Drawing.Point(423, 283);
             this.lblEditSaved.Name = "lblEditSaved";
             this.lblEditSaved.Size = new System.Drawing.Size(41, 12);
             this.lblEditSaved.TabIndex = 23;
@@ -1037,7 +1088,7 @@
             // 
             this.pbEditSaved.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.pbEditSaved.Image = ((System.Drawing.Image)(resources.GetObject("pbEditSaved.Image")));
-            this.pbEditSaved.Location = new System.Drawing.Point(415, 281);
+            this.pbEditSaved.Location = new System.Drawing.Point(405, 281);
             this.pbEditSaved.Name = "pbEditSaved";
             this.pbEditSaved.Size = new System.Drawing.Size(16, 16);
             this.pbEditSaved.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -1113,7 +1164,7 @@
             // 
             this.lnkCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.lnkCancel.AutoSize = true;
-            this.lnkCancel.Location = new System.Drawing.Point(551, 283);
+            this.lnkCancel.Location = new System.Drawing.Point(541, 283);
             this.lnkCancel.Name = "lnkCancel";
             this.lnkCancel.Size = new System.Drawing.Size(30, 12);
             this.lnkCancel.TabIndex = 22;
@@ -1131,7 +1182,7 @@
             this.tbBio.Multiline = true;
             this.tbBio.Name = "tbBio";
             this.tbBio.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbBio.Size = new System.Drawing.Size(350, 191);
+            this.tbBio.Size = new System.Drawing.Size(340, 191);
             this.tbBio.TabIndex = 21;
             this.tbBio.KeyDown += new System.Windows.Forms.KeyEventHandler(this.tbBio_KeyDown);
             // 
@@ -1139,7 +1190,7 @@
             // 
             this.lnkSaveProfile.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.lnkSaveProfile.AutoSize = true;
-            this.lnkSaveProfile.Location = new System.Drawing.Point(480, 283);
+            this.lnkSaveProfile.Location = new System.Drawing.Point(470, 283);
             this.lnkSaveProfile.Name = "lnkSaveProfile";
             this.lnkSaveProfile.Size = new System.Drawing.Size(65, 12);
             this.lnkSaveProfile.TabIndex = 20;
@@ -1189,7 +1240,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(618, 365);
+            this.ClientSize = new System.Drawing.Size(608, 365);
             this.Controls.Add(this.hiddenMain);
             this.Controls.Add(this.sStatus);
             this.Controls.Add(this.msMenu);
@@ -1248,7 +1299,7 @@
         private System.Windows.Forms.MenuStrip msMenu;
         private System.Windows.Forms.StatusStrip sStatus;
         private System.Windows.Forms.ToolStripStatusLabel tslChatting;
-        private System.Windows.Forms.ToolStripMenuItem optionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem tsmOptions;
         private System.Windows.Forms.ComboBox comboBox1;
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.SplitContainer splitContainer2;
@@ -1272,8 +1323,8 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox textBox2;
-        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel2;
-        private System.Windows.Forms.ToolStripStatusLabel slblOnline;
+        private System.Windows.Forms.ToolStripStatusLabel tslSpacer;
+        private System.Windows.Forms.ToolStripStatusLabel tslOnline;
         private System.Windows.Forms.TabPage tpReconnect;
         private System.Windows.Forms.Button button2;
         private System.Windows.Forms.Button button3;
@@ -1338,6 +1389,12 @@
         private ChangerControl chcProfile;
         private System.Windows.Forms.PictureBox pbEditSaved;
         private System.Windows.Forms.Label lblEditSaved;
+        private System.Windows.Forms.ToolStripMenuItem tsmVersion;
+        private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
+        private System.Windows.Forms.ToolStripMenuItem tsmPing;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripMenuItem tsmClearChat;
     }
 }
 

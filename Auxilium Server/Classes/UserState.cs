@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using Auxilium_Server.Classes.Connection;
 
 namespace Auxilium_Server.Classes
 {
@@ -15,7 +14,7 @@ namespace Auxilium_Server.Classes
         public int Points;
         public byte Rank;
 
-        public bool Mute;
+        public List<Client> Mute;
         public byte Channel;
 
         public bool Idle;
@@ -38,16 +37,18 @@ namespace Auxilium_Server.Classes
                 return;
             }
 
-            int NextRank = ((Rank / 2) + 1) * (Rank + 1) * 4000;
+            int nextRank = ((Rank / 2) + 1) * (Rank + 1) * 4000;
 
-            if (Points >= NextRank)
+            int previousRank = (((Rank - 1) / 2) + 1) * Rank * 4000;
+
+            if (Points >= nextRank)
             {
                 Rank += 1;
             }
 
-            Percentage = (int)Math.Round(((double)Points / (double)NextRank) * 100);
+            Percentage = (int)Math.Round((((double)Points - (double)previousRank) / ((double)nextRank - (double)previousRank)) * 100);
 
-            ExperienceRequired = NextRank - Points;
+            ExperienceRequired = nextRank - Points;
         }
 
         public bool IsFlooding()

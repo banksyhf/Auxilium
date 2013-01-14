@@ -1,16 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Net;
+using System.Net.Sockets;
 using System.ComponentModel;
-using System.IO;
+using System.Collections.Generic;
 
-namespace Auxilium_Server.Classes
+namespace Auxilium.Classes
 {
-    //Special server optimized client.
-    //This client has been modified to define Value as a 'UserState' instead of an 'object'.
-
-    sealed class Client
+    //Special thread safe client.
+    public class Client
     {
         //TODO: Lock objects where needed.
         //TODO: Raise Client_Fail with exception.
@@ -28,13 +25,13 @@ namespace Auxilium_Server.Classes
         }
 
         public event Client_StateEventHandler Client_State;
-        public delegate void Client_StateEventHandler(Client s, bool connected);
+        public delegate void Client_StateEventHandler(Client s, bool open);
 
-        private void OnClient_State(bool connected)
+        private void OnClient_State(bool open)
         {
             if (Client_State != null)
             {
-                Client_State(this, connected);
+                Client_State(this, open);
             }
         }
 
@@ -60,6 +57,7 @@ namespace Auxilium_Server.Classes
             }
         }
 
+        private AsyncOperation O;
         private Socket Handle;
 
         private int SendIndex;
@@ -75,7 +73,7 @@ namespace Auxilium_Server.Classes
         private bool[] Processing = new bool[2];
 
         public ushort BufferSize { get; set; }
-        public UserState Value { get; set; }
+        public object UserState { get; set; }
 
         private IPEndPoint _EndPoint;
         public IPEndPoint EndPoint
@@ -95,24 +93,28 @@ namespace Auxilium_Server.Classes
             get { return _Connected; }
         }
 
-        public Client(Socket sock, ushort size)
+        public Client()
+        {
+            O = AsyncOperationManager.CreateOperation(null);
+        }
+
+        public void Connect(string host, ushort port)
         {
             try
             {
+                Disconnect();
                 Initialize();
-                Items[0].SetBuffer(new byte[size], 0, size);
 
-                Handle = sock;
+                Handle = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-                BufferSize = size;
-                _EndPoint = (IPEndPoint)Handle.RemoteEndPoint;
-                _Connected = true;
-
-                if (!Handle.ReceiveAsync(Items[0]))
+                Items[0].RemoteEndPoint = new IPEndPoint(IPAddress.Parse(host), port);
+                if (!Handle.ConnectAsync(Items[0]))
                     Process(null, Items[0]);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Windows.Forms.MessageBox.Show(ex.ToString());
+                OnClient_Fail();
                 Disconnect();
             }
         }
@@ -128,6 +130,8 @@ namespace Auxilium_Server.Classes
             ReadBuffer = new byte[0];
 
             SendQueue = new Queue<byte[]>();
+
+            Items = new SocketAsyncEventArgs[2];
 
             Items[0] = new SocketAsyncEventArgs();
             Items[1] = new SocketAsyncEventArgs();
@@ -148,7 +152,7 @@ namespace Auxilium_Server.Classes
                             _Connected = true;
                             Items[0].SetBuffer(new byte[BufferSize], 0, BufferSize);
 
-                            OnClient_State(true);
+                            O.Post(x => OnClient_State(true), null);
                             if (!Handle.ReceiveAsync(e))
                                 Process(null, e);
                             break;
@@ -172,7 +176,7 @@ namespace Auxilium_Server.Classes
                             if (!_Connected)
                                 return;
 
-                            OnClient_Write();
+                            O.Post(x => OnClient_Write(), null);
                             SendIndex += e.BytesTransferred;
 
                             bool EOS = (SendIndex >= SendBuffer.Length);
@@ -187,7 +191,7 @@ namespace Auxilium_Server.Classes
                 else
                 {
                     if (e.LastOperation == SocketAsyncOperation.Connect)
-                        OnClient_Fail();
+                        O.Post(x => OnClient_Fail(), null);
                     Disconnect();
                 }
             }
@@ -216,12 +220,11 @@ namespace Auxilium_Server.Classes
             ReadBuffer = new byte[0];
 
             if (Raise)
-                OnClient_State(false);
+                O.Post(x => OnClient_State(false), null);
 
-            Value = null;
+            UserState = null;
             _EndPoint = null;
         }
-
 
         public void Send(byte[] data)
         {
@@ -284,7 +287,7 @@ namespace Auxilium_Server.Classes
 
                 if (ReadIndex >= ReadBuffer.Length)
                 {
-                    OnClient_Read(ReadBuffer);
+                    O.Post(x => OnClient_Read((byte[])x), ReadBuffer);
                 }
 
                 if (read < (length - index))
@@ -294,184 +297,5 @@ namespace Auxilium_Server.Classes
             }
             catch { }
         }
-
     }
-
-    class Server
-    {
-        public event Server_StateEventHandler Server_State;
-        public delegate void Server_StateEventHandler(Server s, bool listening);
-
-        private void OnServer_State(bool listening)
-        {
-            if (Server_State != null)
-            {
-                Server_State(this, listening);
-            }
-        }
-
-        public event Client_StateEventHandler Client_State;
-        public delegate void Client_StateEventHandler(Server s, Client c, bool connected);
-
-        private void OnClient_State(Client c, bool connected)
-        {
-            if (Client_State != null)
-            {
-                Client_State(this, c, connected);
-            }
-        }
-
-        public event Client_ReadEventHandler Client_Read;
-        public delegate void Client_ReadEventHandler(Server s, Client c, byte[] e);
-
-        private void OnClient_Read(Client c, byte[] e)
-        {
-            if (Client_Read != null)
-            {
-                Client_Read(this, c, e);
-            }
-        }
-
-        public event Client_WriteEventHandler Client_Write;
-        public delegate void Client_WriteEventHandler(Server s, Client c);
-
-        private void OnClient_Write(Client c)
-        {
-            if (Client_Write != null)
-            {
-                Client_Write(this, c);
-            }
-        }
-
-
-        private Socket Handle;
-        private SocketAsyncEventArgs Item;
-
-        private bool Processing;
-        public ushort BufferSize { get; set; }
-        public ushort MaxConnections { get; set; }
-
-        private bool _Listening;
-        public bool Listening
-        {
-            get { return _Listening; }
-        }
-
-        private List<Client> _Clients;
-        public Client[] Clients
-        {
-            get
-            {
-                if (_Listening)
-                    return _Clients.ToArray();
-                else
-                    return new Client[0];
-            }
-        }
-
-        public void Listen(ushort port)
-        {
-            try
-            {
-                if (!_Listening)
-                {
-                    _Clients = new List<Client>();
-
-                    Item = new SocketAsyncEventArgs();
-                    Item.Completed += Process;
-
-                    Handle = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    Handle.Bind(new IPEndPoint(IPAddress.Any, port));
-                    Handle.Listen(10);
-
-                    Processing = false;
-                    _Listening = true;
-
-                    OnServer_State(true);
-                    if (!Handle.AcceptAsync(Item))
-                        Process(null, Item);
-                }
-            }
-            catch
-            {
-                Disconnect();
-            }
-        }
-
-        private void Process(object s, SocketAsyncEventArgs e)
-        {
-            try
-            {
-                if (e.SocketError == SocketError.Success)
-                {
-                    Client T = new Client(e.AcceptSocket, BufferSize);
-
-                    lock (_Clients)
-                    {
-                        if (_Clients.Count <= MaxConnections)
-                        {
-                            _Clients.Add(T);
-                            T.Client_State += HandleState;
-                            T.Client_Read += OnClient_Read;
-                            T.Client_Write += OnClient_Write;
-
-                            OnClient_State(T, true);
-                        }
-                        else
-                        {
-                            T.Disconnect();
-                        }
-                    }
-
-                    e.AcceptSocket = null;
-                    if (!Handle.AcceptAsync(e))
-                        Process(null, e);
-                }
-                else
-                {
-                    Disconnect();
-                }
-
-            }
-            catch
-            {
-                Disconnect();
-            }
-        }
-
-        public void Disconnect()
-        {
-            if (Processing)
-                return;
-            else
-                Processing = true;
-
-            if (Handle != null)
-                Handle.Close();
-
-            lock (_Clients)
-            {
-                while (_Clients.Count != 0)
-                {
-                    _Clients[0].Disconnect();
-                    _Clients.RemoveAt(0);
-                }
-            }
-
-            _Listening = false;
-            OnServer_State(false);
-        }
-
-        private void HandleState(Client s, bool open)
-        {
-            lock (_Clients)
-            {
-                _Clients.Remove(s);
-                OnClient_State(s, false);
-            }
-        }
-
-    }
-
-
 }

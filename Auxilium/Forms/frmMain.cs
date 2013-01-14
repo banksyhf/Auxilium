@@ -1,20 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Text;
-using System.Linq;
-using System.Threading;
-using System.Windows.Forms;
-using System.Diagnostics;
-using System.Net;
-using System.Runtime.InteropServices;
-using Auxilium.Forms;
-using Auxilium.Classes;
-using Microsoft.Win32;
 using System.IO;
-using System.Xml.Serialization;
-using System.Reflection;
+using System.Net;
+using System.Linq;
 using System.Media;
+using Auxilium.Forms;
+using System.Drawing;
+using Microsoft.Win32;
+using System.Threading;
+using Auxilium.Classes;
+using System.Reflection;
+using System.Diagnostics;
+using System.Windows.Forms;
+using System.Collections.Generic;
+using System.Net.NetworkInformation;
 
 namespace Auxilium
 {
@@ -22,8 +20,8 @@ namespace Auxilium
     {
         #region " Declarations "
 
-        private string Host = "127.0.0.1";
-        private ushort Port = 3357;
+        private const string Host = "127.0.0.1";
+        private const ushort Port = 3357;
 
         private Client Connection;
         private Pack Packer;
@@ -31,7 +29,7 @@ namespace Auxilium
         //Store user information such as id, username, and rank here.
         private Dictionary<ushort, User> Users;
 
-        private int UnreadPMs = 0;
+        private int _unreadPMs = 0;
         private List<PrivateMessage> PMs = new List<PrivateMessage>();
 
         private SoundPlayer AudioPlayer = new SoundPlayer(Properties.Resources.Notify);//TODO: Handle this differently to ditch the VisualBasic reference.
@@ -62,6 +60,13 @@ namespace Auxilium
         {
             InitializeComponent();
 
+            FileInfo fileInfo = new FileInfo(Application.ExecutablePath);
+            MessageBox.Show(fileInfo.Name);
+            if (fileInfo.Name.Contains(Application.ProductVersion))
+            {
+                File.Move(Application.ExecutablePath, Application.ExecutablePath.Replace(" " + Application.ProductVersion, ""));
+            }
+
             for (int i = 1; i < 43; i++)
             {
                 string name = "Auxilium.Resources.Ranks." + i.ToString() + ".png";
@@ -70,7 +75,14 @@ namespace Auxilium
                 ilUsers.Images.Add(img);
             }
 
-            //Initialize the (de)serializer
+            //Set renderers for contextmenustrips and menustrips to Aero instead of the ugly default .NET renderer.
+            msMenu.Renderer = new ToolStripAeroRenderer(ToolbarTheme.Toolbar, false);
+            cmsUsers.Renderer = new ToolStripAeroRenderer(ToolbarTheme.Toolbar, false);
+            cmsChatClipboard.Renderer = new ToolStripAeroRenderer(ToolbarTheme.Toolbar, false);
+            cmsClipboard.Renderer = new ToolStripAeroRenderer(ToolbarTheme.Toolbar, false);
+            cmsNotify.Renderer = new ToolStripAeroRenderer(ToolbarTheme.Toolbar, false);
+
+            //Initialize the serializer
             Packer = new Pack();
 
             //Hook events and initialize socket.
@@ -85,16 +97,12 @@ namespace Auxilium
 
             //Prevents the header from auto-resizing.
             lvUsers.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.None);
-
-            //TODO: This should use a better format.
-            //chatLogger = new StreamWriter("chat-" + DateTime.Now.ToFileTimeUtc() + ".log");
-            //chatLogger.AutoFlush = true;
         }
 
         private void frmMain_Shown(object sender, EventArgs e)
         {
             //Hide users online until user is in chat.
-            slblOnline.Visible = false;
+            tslOnline.Visible = false;
             tbUser.Select();
 
             //Because that non-async method below will keep our controls from updating..
@@ -113,7 +121,7 @@ namespace Auxilium
             //Remember Me
             RegistryKey rk = Registry.CurrentUser.OpenSubKey("Software\\Auxilium");
 
-            if (!(rk == null))
+            if (rk != null)
             {
                 string[] names = rk.GetValueNames();
                 if (names.Contains("Username"))
@@ -137,7 +145,7 @@ namespace Auxilium
             }
             LoadSettings();
 
-            this.Text += Application.ProductVersion;
+            tsmVersion.Text += Application.ProductVersion;
         }
 
         private void CheckForUpdates()
@@ -145,14 +153,13 @@ namespace Auxilium
             //Check for update loop, considering I update a lot.
             new Thread(() =>
                 {
+                    WebClient wc = new WebClient();
+                    wc.Proxy = null;
                     while (true)
                     {
                         try
                         {
-                            WebClient wc = new WebClient();
-                            wc.Proxy = null;
-                            //Not sure why I was downloading Async before, considering it's already in a new thread...
-                            string[] values = wc.DownloadString("http://coleak.com/auxilium/update.txt").Split('~');
+                            string[] values = wc.DownloadString("http://coleak.com/auxilium/updater.txt").Split("\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
                             if (values[0] != Application.ProductVersion)
                                 Functions.Update(values[1]);
                         }
@@ -183,6 +190,7 @@ namespace Auxilium
                 tslChatting.Text = "Status: Connected.";
                 if (AutoLogin)
                     Login();
+                SendPing();
             }
             else
             {
@@ -225,7 +233,7 @@ namespace Auxilium
                         HandleUserLeavePacket((ushort)values[1]);
                         break;
                     case ServerPacket.MOTD:
-                        HandleMOTDPacket((string)values[1]);
+                        HandleMotdPacket((string)values[1]);
                         break;
                     case ServerPacket.Chatter:
                         HandleChatterPacket((ushort)values[1], (string)values[2]);
@@ -257,6 +265,9 @@ namespace Auxilium
                     case ServerPacket.EditProfile:
                         HandleEditProfilePacket((bool)values[1]);
                         break;
+                    case ServerPacket.ClearChat:
+                        HandleClearChatPacket();
+                        break;
                 }
             }
             catch
@@ -269,6 +280,11 @@ namespace Auxilium
         #endregion
 
         #region " Packet Handlers "
+
+        private void HandleClearChatPacket()
+        {
+            rtbChat.Text = string.Empty;
+        }
 
         private void HandleEditProfilePacket(bool success)
         {
@@ -296,7 +312,7 @@ namespace Auxilium
             Uri yuri = null;
             if (!string.IsNullOrWhiteSpace(avatar) && Uri.TryCreate(avatar, UriKind.Absolute, out yuri) && yuri.Scheme == "http")
             {
-                pbAvatar.Image = Properties.Resources.spinner;
+                pbEditAvatar.Image = Properties.Resources.spinner;
                 WebClient wc = new WebClient() { Proxy = null };
                 wc.DownloadDataCompleted += new DownloadDataCompletedEventHandler((sender, e) =>
                 {
@@ -309,7 +325,7 @@ namespace Auxilium
                 wc.DownloadDataAsync(yuri);
                 chcAvatar.Text = avatar;
             } else {
-                pbAvatar.Image = Properties.Resources.NA;
+                pbEditAvatar.Image = Properties.Resources.NA;
             }
 
             if (!string.IsNullOrWhiteSpace(hf))
@@ -383,7 +399,7 @@ namespace Auxilium
             if (success)
             {
                 msMenu.Enabled = true;
-                slblOnline.Visible = true;
+                tslOnline.Visible = true;
                 tslChatting.Text = "Username: " + Username;
 
                 hiddenMain.SelectedIndex = (int)MenuScreen.Chat;
@@ -411,11 +427,11 @@ namespace Auxilium
 
                 string pt = pMsToolStripMenuItem.Text;
 
-                pMsToolStripMenuItem.Text = "PMs (" + (UnreadPMs += 1) + ")";
+                pMsToolStripMenuItem.Text = "PMs (" + (_unreadPMs += 1) + ")";
 
                 //Check if PM window is open, and update it if it is.
                 Form getForm = null;
-                if (!(CheckFormIsOpen(typeof(PrivateMessages), out getForm) == null))
+                if (CheckFormIsOpen(typeof(PrivateMessages), out getForm) != null)
                 {
                     ((PrivateMessages)getForm).PMs = PMs.ToArray();
                     ((PrivateMessages)getForm).LoadPMs();
@@ -496,7 +512,7 @@ namespace Auxilium
         }
 
         //TODO: Suport custom server colors?
-        private void HandleMOTDPacket(string message)
+        private void HandleMotdPacket(string message)
         {
             //BeginUpdateChat();
 
@@ -528,7 +544,7 @@ namespace Auxilium
 
         private void HandleRecentMessagesPacket(string time, string username, string message, byte rank)
         {
-            DateTime dTime = DateTime.Parse(time).ToLocalTime();
+            DateTime dTime = DateTime.Parse(time);
             AppendChat(GetRankColor(rank), Color.Black, username, message, dTime);
         }
 
@@ -578,7 +594,7 @@ namespace Auxilium
             InvalidateChat();
 
             msMenu.Enabled = false;
-            slblOnline.Visible = false;
+            tslOnline.Visible = false;
 
             button2.Enabled = true;
             hiddenMain.SelectedIndex = (int)MenuScreen.Reconnect;
@@ -605,22 +621,14 @@ namespace Auxilium
             //Remember Me.
             if (cbRemember.Checked)
             {
-                RegistryKey rKey = null;
-                try
+                RegistryKey rKey = Registry.CurrentUser.OpenSubKey("Software\\Auxilium", true) ??
+                                   Registry.CurrentUser.CreateSubKey("Software\\Auxilium");
+                if (rKey != null)
                 {
-                    rKey = Registry.CurrentUser.OpenSubKey("Software\\Auxilium", true);
                     rKey.SetValue("Username", tbUser.Text.Trim());
                     rKey.SetValue("Password", tbPass.Text.Trim());
-                    rKey.SetValue("Auto", cbAuto.Checked.ToString());
+                    rKey.SetValue("Auto", cbAuto.Checked);
                 }
-                catch
-                {
-                    rKey = Registry.CurrentUser.CreateSubKey("Software\\Auxilium");
-                    rKey.SetValue("Username", tbUser.Text.Trim());
-                    rKey.SetValue("Password", tbPass.Text.Trim());
-                    rKey.SetValue("Auto", cbAuto.Checked.ToString());
-                }
-
             }
 
             string name = tbUser.Text.Trim();
@@ -637,14 +645,15 @@ namespace Auxilium
         {
             new Thread(() =>
                 {
+                    byte[] data = Packer.Serialize((byte)ClientPacket.KeepAlive);
                     while (true)
                     {
                         Thread.Sleep(30000);
                         if (Connection.Connected)
                         {
-                            byte[] data = Packer.Serialize((byte)ClientPacket.KeepAlive);
                             Connection.Send(data);
                         }
+                        SendPing();
                     }
                 }).Start();
         }
@@ -680,7 +689,7 @@ namespace Auxilium
 
             lvUsers.EndUpdate();
 
-            slblOnline.Text = "Users Online: " + lvUsers.Items.Count;
+            tslOnline.Text = "Users Online: " + lvUsers.Items.Count;
         }
 
         private Color GetRankColor(byte rank)
@@ -706,57 +715,49 @@ namespace Auxilium
 
         private void LoadSettings()
         {
-            if (!File.Exists("settings.xml"))
-                return;
-            using (Stream s = File.OpenRead("settings.xml"))
+            File.Delete("settings.xml"); //Delete old settings file as it is no longer used.
+
+            RegistryKey rKey = Registry.CurrentUser.OpenSubKey("Software\\Auxilium");
+
+            if (rKey != null)
             {
-                try
-                {
-                    XmlSerializer xml = new XmlSerializer(typeof(Settings));
-                    Settings settings = (Settings)xml.Deserialize(s);
-                    WriteMessageToFile = settings.WriteMessages;
-                    ShowTimestamps = settings.Timestamps;
-                    SpaceOutMessages = settings.SpaceMessages;
-                    AudibleNotification = settings.AudioNotification;
-                    ShowChatNotifications = settings.ChatNotifications;
-                    MinimizeToTray = settings.MinimizeToTray;
-                    ShowJoinLeaveEvents = ShowJoinLeaveEvents;
-                }
-                finally
-                {
-                    s.Flush();
-                    s.Close();
-                    s.Dispose();
-                }
+                SpaceOutMessages = (bool) rKey.GetValue("SpaceMessages", SpaceOutMessages);
+                AudibleNotification = (bool) rKey.GetValue("AudioNotification", AudibleNotification);
+                ShowChatNotifications = (bool) rKey.GetValue("ChatNotifications", ShowChatNotifications);
+                ShowJoinLeaveEvents = (bool) rKey.GetValue("JoinLeaveEvents", ShowJoinLeaveEvents);
+                MinimizeToTray = (bool) rKey.GetValue("MinimizeToTray", MinimizeToTray);
+                ShowTimestamps = (bool) rKey.GetValue("Timestamps", ShowTimestamps);
+                WriteMessageToFile = (bool) rKey.GetValue("WriteMessages", WriteMessageToFile);
+            }
+            else
+            {
+                SaveSettings();
             }
         }
         private void SaveSettings()
         {
-            File.Delete("settings.xml"); //Delete this so the XmlSerializer doesn't get messed up.
-            using (Stream s = File.OpenWrite("settings.xml"))
+            RegistryKey rKey = Registry.CurrentUser.OpenSubKey("Software\\Auxilium", true) ??
+                                   Registry.CurrentUser.CreateSubKey("Software\\Auxilium");
+            if (rKey != null)
             {
-                try
-                {
-                    Settings settings = new Settings()
-                    {
-                        SpaceMessages = SpaceOutMessages,
-                        AudioNotification = AudibleNotification,
-                        ChatNotifications = ShowChatNotifications,
-                        JoinLeaveEvents = ShowJoinLeaveEvents,
-                        MinimizeToTray = MinimizeToTray,
-                        Timestamps = ShowTimestamps,
-                        WriteMessages = WriteMessageToFile
-                    };
-                    XmlSerializer xml = new XmlSerializer(typeof(Settings));
-                    xml.Serialize(s, settings);
-                }
-                finally
-                {
-                    s.Flush();
-                    s.Close();
-                    s.Dispose();
-                }
+                rKey.SetValue("SpaceMessages", SpaceOutMessages);
+                rKey.SetValue("AudioNotification", AudibleNotification);
+                rKey.SetValue("ChatNotifications", ShowChatNotifications);
+                rKey.SetValue("JoinLeaveEvents", ShowJoinLeaveEvents);
+                rKey.SetValue("MinimizeToTray", MinimizeToTray);
+                rKey.SetValue("Timestamps", ShowTimestamps);
+                rKey.SetValue("WriteMessages", WriteMessageToFile);
             }
+        }
+
+        private void SendPing()
+        {
+            Ping ping = new Ping();
+            ping.PingCompleted += (sender, e) =>
+            {
+                tsmPing.Text = "Ping: " + e.Reply.RoundtripTime.ToString() + " ms";
+            };
+            ping.SendAsync(IPAddress.Parse(Host), null);
         }
         #endregion
 
@@ -821,7 +822,7 @@ namespace Auxilium
 
         private void pMsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            UnreadPMs = 0;
+            _unreadPMs = 0;
             new PrivateMessages(PMs.ToArray(), Connection).Show();
             pMsToolStripMenuItem.Text = "PMs";
         }
@@ -939,11 +940,10 @@ namespace Auxilium
 
         private void tsmSignOut_Click(object sender, EventArgs e)
         {
+            ConnectToServer();
             tsmSignOut.Enabled = false;
             tsmEditProfile.Enabled = false;
             hiddenMain.SelectedIndex = (int)MenuScreen.SignIn;
-
-            ConnectToServer();
         }
 
         private void frmMain_Resize(object sender, EventArgs e)
@@ -1040,14 +1040,14 @@ namespace Auxilium
             {
                 pbEditAvatar.Image = Properties.Resources.spinner;
                 WebClient wc = new WebClient() { Proxy = null };
-                wc.DownloadDataCompleted += new DownloadDataCompletedEventHandler((x, i) =>
-                {
-                    try {
-                        pbEditAvatar.Image = ImageFromResult(i.Result);
-                    } catch {
-                        pbEditAvatar.Image = Properties.Resources.NA;
-                    }
-                });
+                wc.DownloadDataCompleted += (x, i) =>
+                                                {
+                                                    try {
+                                                        pbEditAvatar.Image = ImageFromResult(i.Result);
+                                                    } catch {
+                                                        pbEditAvatar.Image = Properties.Resources.NA;
+                                                    }
+                                                };
                 wc.DownloadDataAsync(yuri);
             } else {
                 pbEditAvatar.Image = Properties.Resources.NA;
@@ -1060,6 +1060,11 @@ namespace Auxilium
             {
                 tbBio.SelectAll();
             }
+        }
+
+        private void tsmClearChat_Click(object sender, EventArgs e)
+        {
+            rtbChat.Text = string.Empty;
         }
 
         #endregion
@@ -1247,5 +1252,6 @@ namespace Auxilium
 
         
         #endregion
+
     }
 }

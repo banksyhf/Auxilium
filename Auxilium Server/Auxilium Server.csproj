@@ -56,11 +56,17 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Connection.cs" />
-    <Compile Include="Serializer.cs" />
-    <Compile Include="UserState.cs" />
+    <Compile Include="Classes\ChatMessage.cs" />
+    <Compile Include="Classes\Connection\Client.cs" />
+    <Compile Include="Classes\Packets.cs" />
+    <Compile Include="Classes\Connection\Server.cs" />
+    <Compile Include="Classes\SpecialRanks.cs" />
+    <Compile Include="Classes\Connection\Serializer.cs" />
+    <Compile Include="Classes\UserState.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
@@ -111,7 +117,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <None Include="SQL Schema.sql" />
+    <None Include="SQL Database\SQL Schema.sql" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

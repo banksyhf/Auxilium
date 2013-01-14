@@ -65,7 +65,7 @@
     <Compile Include="Classes\Controls.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Classes\Connection.cs" />
+    <Compile Include="Classes\Client.cs" />
     <Compile Include="Classes\Settings.cs" />
     <Compile Include="Classes\UserComparer.cs" />
     <Compile Include="Classes\PrivateMessage.cs" />

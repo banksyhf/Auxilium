@@ -1,13 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Security.Cryptography;
-using System.Diagnostics;
-using System.Net;
 using System.IO;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
+using System.Net;
+using System.Text;
 using System.Drawing;
+using System.Diagnostics;
+using System.Windows.Forms;
+using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 
 namespace Auxilium
 {
@@ -156,13 +155,13 @@ namespace Auxilium
         News,
         ViewProfile,
         Profile,
-        EditProfile
+        EditProfile,
+        ClearChat
     }
 
     public enum ClientPacket : byte
     {
         SignIn,
-        SignOut,
         Register,
         Channel,
         ChatMessage,
@@ -191,6 +190,7 @@ namespace Auxilium
             Idle = idle;
         }
     }
+
     struct ChatMessage
     {
         public Color Color;

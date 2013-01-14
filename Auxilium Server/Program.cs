@@ -1,15 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Linq;
-using Auxilium_Server.Classes;
-using System.IO;
-using System.Collections;
-using MySql.Data.MySqlClient;
-using System.Globalization;
-using System.Data;
 using System.Threading;
+using Auxilium_Server.Classes.Connection;
+using MySql.Data.MySqlClient;
+using Auxilium_Server.Classes;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace Auxilium_Server
 {
@@ -17,14 +13,14 @@ namespace Auxilium_Server
     {
         #region " Declarations "
 
-        static ushort Port = 3357;
-        static ushort RunningID = 0;
+        private const ushort Port = 3357;
+        static ushort RunningId = 0;
 
         static string[] Channels;
 
         static List<ChatMessage> RecentMessages = new List<ChatMessage>();
 
-        static string MOTD;
+        static string Motd;
 
         static int Reconnect;
 
@@ -33,17 +29,17 @@ namespace Auxilium_Server
 
         static DateTime LastBackup;
 
-        static System.Threading.Timer ChatMonitor;
+        static Timer ChatMonitor;
 
         //Done, Still Testing: Have a pool of SQL Connections to randomly select from when querying the DB.
-        static MySqlConnection[] SQLQueue;
-        static Random RandomSQL;
+        static MySqlConnection[] _sqlQueue;
+        static Random _randomSql;
 
-        static MySqlConnection SQL
+        static MySqlConnection Sql
         {
             get
             {
-                return SQLQueue[RandomSQL.Next(0, SQLQueue.Length)];
+                return _sqlQueue[_randomSql.Next(0, _sqlQueue.Length)];
             }
         }
 
@@ -51,22 +47,37 @@ namespace Auxilium_Server
 
         #region " Initialization "
 
-        static void Main(string[] args)
+        static void Main()
         {
-            SQLQueue = new MySqlConnection[10];
-            RandomSQL = new Random(new Guid().GetHashCode());
+            _sqlQueue = new MySqlConnection[10];
+            _randomSql = new Random(new Guid().GetHashCode());
 
-            for (int i = 0; i < SQLQueue.Length; i++)
+            string connectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
+            for (int i = 0; i < _sqlQueue.Length; i++)
             {
                 MySqlConnection msc = new MySqlConnection();
-                msc.ConnectionString = "server=localhost;uid=auxilium;pwd=123456;database=auxilium";
-                msc.Open();
-                SQLQueue[i] = msc;
+                _sqlQueue[i] = msc;
+                try
+                {
+                    msc.ConnectionString = connectionString;
+                    msc.Open();
+                }
+                catch (MySqlException)
+                {
+                    Console.Write("An error occured connecting to the database.\nPlease enter your credentials.\n\nUsername: ");
+
+                    string username = Console.ReadLine();
+                    Console.Write("Password: ");
+
+                    string password = Console.ReadLine();
+                    msc.ConnectionString = (connectionString = string.Format("server=localhost;uid={0};pwd={1};database=auxilium", username, password));
+                    msc.Open();
+                }
             }
 
             Channels = new string[] { "Lounge" };
 
-            MOTD = GetMOTD();
+            Motd = GetMOTD();
 
             Packer = new Pack();
             Listener = new Server();
@@ -86,11 +97,13 @@ namespace Auxilium_Server
             {
                 string str = string.Empty;
                 if (!string.IsNullOrWhiteSpace(str = Console.ReadLine()))
-                    ProcessCommand(str);
+                    CheckCommand(null, str);
                 else if (Console.ReadKey().Key == ConsoleKey.Escape)
                     break;
             }
         }
+
+        
 
         #endregion
 
@@ -148,7 +161,7 @@ namespace Auxilium_Server
                 if (doBackup || shutDown)
                 {
 
-                    MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+                    MySqlCommand q = new MySqlCommand(string.Empty, Sql);
                     q.CommandText = "UPDATE users SET Points=@Points,Rank=@Rank,Mute=@Mute WHERE Username=@Username;";
                     q.Parameters.AddWithValue("@Points", c.Value.Points);
                     q.Parameters.AddWithValue("@Rank", c.Value.Rank);
@@ -174,13 +187,14 @@ namespace Auxilium_Server
             }
         }
 
-        static void BroadcastExclusive(ushort userID, byte channel, byte[] data)
+        static void BroadcastExclusive(ushort userID, byte channel, byte[] data, Client client = null)
         {
             foreach (Client c in Listener.Clients)
             {
                 if (c.Value.Authenticated && c.Value.Channel == channel && c.Value.UserID != userID)
                 {
-                    c.Send(data);
+                    if (client != null && !client.Value.Mute.Contains(c) && !c.Value.Mute.Contains(client))
+                        c.Send(data);
                 }
             }
         }
@@ -225,9 +239,9 @@ namespace Auxilium_Server
             if (open)
             {
                 c.Value = new UserState();
-                if (!string.IsNullOrEmpty(MOTD))
+                if (!string.IsNullOrEmpty(Motd))
                 {
-                    byte[] data = Packer.Serialize((byte)ServerPacket.MOTD, MOTD);
+                    byte[] data = Packer.Serialize((byte)ServerPacket.Motd, Motd);
                     c.Send(data);
                 }
             }
@@ -241,7 +255,7 @@ namespace Auxilium_Server
                     AwardPoints(c);
 
                     //Let's save the users data.
-                    MySqlCommand q = new MySqlCommand(string.Empty, SQL);
+                    MySqlCommand q = new MySqlCommand(string.Empty, Sql);
                     q.CommandText = "UPDATE users SET Points=@Points,Rank=@Rank,Mute=@Mute WHERE Username=@Username;";
                     q.Parameters.AddWithValue("@Points", c.Value.Points);
                     q.Parameters.AddWithValue("@Rank", c.Value.Rank);
@@ -275,9 +289,6 @@ namespace Auxilium_Server
                 {
                     switch (packet)
                     {
-                        case ClientPacket.SignOut:
-                            HandleSignOutPacket(c);
-                            break;
                         case ClientPacket.Channel:
                             HandleWakeup(c, true); //Supress the packet send here since we are changing rooms anyways.
                             HandleChannelPacket(c, (byte)values[1]);
@@ -341,8 +352,7 @@ namespace Auxilium_Server
             }
 
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT Points, Rank, Ban, Mute FROM users WHERE Username=@Username AND Password=@Password;";
+            MySqlCommand q = new MySqlCommand("SELECT Points, Rank, Ban, Mute FROM users WHERE Username=@Username AND Password=@Password;", Sql);
             q.Parameters.AddWithValue("@Username", n);
             q.Parameters.AddWithValue("@Password", pass);
 
@@ -366,7 +376,7 @@ namespace Auxilium_Server
                 }
 
                 //Second ban check, checks ip table.
-                q = new MySqlCommand(string.Empty, SQL);
+                q = new MySqlCommand(string.Empty, Sql);
                 q.CommandText = "SELECT * FROM ipbans WHERE ip=@ip;";
                 q.Parameters.AddWithValue("@ip", c.EndPoint.Address.ToString());
                 r = q.ExecuteReader();
@@ -391,13 +401,13 @@ namespace Auxilium_Server
                     existing.Disconnect();
                 }
 
-                c.Value.UserID = RunningID++;
+                c.Value.UserID = RunningId++;
                 c.Value.Username = n;
 
                 c.Value.Points = points;
                 c.Value.Rank = rank;
 
-                c.Value.Mute = mute;
+                c.Value.Mute = new List<Client>();
 
                 c.Value.LastPayout = DateTime.Now;
                 c.Value.LastAction = DateTime.Now;
@@ -414,11 +424,6 @@ namespace Auxilium_Server
             }
         }
 
-        static void HandleSignOutPacket(Client c)
-        {
-            c.Value.Authenticated = false;
-        }
-
         static void HandleRegisterPacket(Client c, string name, string pass)
         {
             string n = name.Trim();
@@ -430,8 +435,7 @@ namespace Auxilium_Server
                 return;
             }
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT Count(*) FROM users WHERE Username=@Username";
+            MySqlCommand q = new MySqlCommand("SELECT Count(*) FROM users WHERE Username=@Username", Sql);
             q.Parameters.AddWithValue("@Username", n);
 
             MySqlDataReader r = q.ExecuteReader();
@@ -440,8 +444,8 @@ namespace Auxilium_Server
 
             if (available)
             {
-                MySqlCommand q2 = new MySqlCommand(string.Empty, SQL);
-                q2.CommandText = "INSERT INTO users VALUES (@Username,@Password,0,0,0,0);";
+                MySqlCommand q2 = new MySqlCommand(string.Empty, Sql);
+                q2.CommandText = "INSERT INTO users VALUES (@Username,@Password,0,0,0,0,\"\",\"\",\"\");";
                 q2.Parameters.AddWithValue("@Username", n);
                 q2.Parameters.AddWithValue("@Password", pass);
 
@@ -469,11 +473,6 @@ namespace Auxilium_Server
 
                 c.Value.Channel = channel;
                 SendUserListUpdates(c);
-
-                foreach (ChatMessage cm in RecentMessages)
-                {
-
-                }
             }
             else
             {
@@ -494,7 +493,7 @@ namespace Auxilium_Server
             if (u == null)
                 return;
 
-            byte[] data = Packer.Serialize((byte)ServerPacket.PM, c.Value.Username, message, subject);
+            byte[] data = Packer.Serialize((byte)ServerPacket.Pm, c.Value.Username, message, subject);
             u.Send(data);
         }
 
@@ -506,27 +505,23 @@ namespace Auxilium_Server
                 return;
             }
 
-            if (c.Value.Rank == (byte)SpecialRank.Admin && message.Contains("~"))
-            {
-                Console.WriteLine(c.Value.Username + " executed admin command. Command: " + message);
-                ProcessCommand(message, c);
-            }
-            else
-            {
-                if (c.Value.Mute)
-                    return;
+            if (CheckCommand(c, message))
+                return;
 
-                c.Value.AddPoints(5); //AWARD 5 POINTS FOR ACTIVITY***
+            c.Value.AddPoints(5); //AWARD 5 POINTS FOR ACTIVITY***
 
-                if (RecentMessages.Count == 10)
-                    RecentMessages.RemoveAt(0);
+            if (RecentMessages.Count == 10)
+                RecentMessages.RemoveAt(0);
 
-                ChatMessage msg = new ChatMessage(DateTime.UtcNow.ToString(), message, c.Value.Username, c.Value.Rank);
-                RecentMessages.Add(msg);
+            DateTimeOffset dt = DateTimeOffset.Now;
 
-                byte[] data = Packer.Serialize((byte)ServerPacket.Chatter, c.Value.UserID, message);
-                BroadcastExclusive(c.Value.UserID, c.Value.Channel, data);
-            }
+            dt.ToLocalTime().ToString();
+
+            ChatMessage msg = new ChatMessage(dt.ToLocalTime().ToString(), message, c.Value.Username, c.Value.Rank);
+            RecentMessages.Add(msg);
+
+            byte[] data = Packer.Serialize((byte)ServerPacket.Chatter, c.Value.UserID, message);
+            BroadcastExclusive(c.Value.UserID, c.Value.Channel, data, c);
         }
 
         static void HandleKeepAlivePacket(Client c)
@@ -553,8 +548,7 @@ namespace Auxilium_Server
             if (Uri.TryCreate(profile, UriKind.RelativeOrAbsolute, out uri))
                 validProfile = (uri.DnsSafeHost.ToLower() == "www.hackforums.net" || uri.DnsSafeHost.ToLower() == "hackforums.net" && Regex.IsMatch(profile, @"^(http:\/\/)*(www\.)*hackforums\.net\/member\.php\?action=profile&uid=\d{1,7}$"));
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "UPDATE users SET Avatar=@Avatar, Bio=@Bio, ProfileLink=@ProfileLink WHERE Username=@Username;";
+            MySqlCommand q = new MySqlCommand("UPDATE users SET Avatar=@Avatar, Bio=@Bio, ProfileLink=@ProfileLink WHERE Username=@Username;", Sql);
             q.Parameters.AddWithValue("@Username", c.Value.Username);
             q.Parameters.AddWithValue("@Bio", bio);
             q.Parameters.AddWithValue("@Avatar", avatar);
@@ -609,8 +603,7 @@ namespace Auxilium_Server
         {
             string motd = string.Empty;
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT motd FROM settings;";
+            MySqlCommand q = new MySqlCommand("SELECT motd FROM settings;", Sql);
 
             MySqlDataReader r = q.ExecuteReader();
             bool available = r.Read();
@@ -625,8 +618,7 @@ namespace Auxilium_Server
         {
             string news = string.Empty;
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT news FROM settings;";
+            MySqlCommand q = new MySqlCommand("SELECT news FROM settings;", Sql);
 
             MySqlDataReader r = q.ExecuteReader();
             bool available = r.Read();
@@ -641,7 +633,7 @@ namespace Auxilium_Server
         {
             //Let everyone know the life of the party has just arrived.
             byte[] data1 = Packer.Serialize((byte)ServerPacket.UserJoin, c.Value.UserID, c.Value.Username, c.Value.Rank);
-            BroadcastExclusive(c.Value.UserID, c.Value.Channel, data1);
+            BroadcastExclusive(c.Value.UserID, c.Value.Channel, data1, c);
 
             //Our guy will probably need to know who he's chatting with, right?
             List<object> cValues = new List<object>();
@@ -748,8 +740,7 @@ namespace Auxilium_Server
             List<object> profile = new List<object>();
             profile.Add((byte)header);
 
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "SELECT * FROM users WHERE Username=@Username;";
+            MySqlCommand q = new MySqlCommand("SELECT * FROM users WHERE Username=@Username;", Sql);
             q.Parameters.AddWithValue("@Username", username);
 
             MySqlDataReader r = q.ExecuteReader();
@@ -791,22 +782,24 @@ namespace Auxilium_Server
 
         #region " Commands "
 
-        static void KickUser(string name)
+        static bool KickUser(string name)
         {
             Client c = ClientFromUsername(name);
 
             if (c != null)
+            {
                 c.Disconnect();
-
-            Console.WriteLine(name + " has been kicked.");
+                Console.WriteLine(name + " has been kicked.");
+                return true;
+            }
+            return false;
         }
 
-        static void BanUser(string name, int ipBan = 0)
+        static bool BanUser(string name, int ipBan = 0)
         {
             try
             {
-                MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-                q.CommandText = "UPDATE users SET Ban=1 WHERE Username=@Username;";
+                MySqlCommand q = new MySqlCommand("UPDATE users SET Ban=1 WHERE Username=@Username;", Sql);
                 q.Parameters.AddWithValue("@Username", name);
                 q.ExecuteNonQuery();
 
@@ -814,7 +807,7 @@ namespace Auxilium_Server
                 if (ipBan == 1)
                 {
 
-                    MySqlCommand q2 = new MySqlCommand(string.Empty, SQL);
+                    MySqlCommand q2 = new MySqlCommand(string.Empty, Sql);
                     q2.CommandText = "INSERT INTO ipbans VALUES (@ip);";
                     q2.Parameters.AddWithValue("@ip", c.EndPoint.Address.ToString());
                     q2.ExecuteNonQuery();
@@ -824,177 +817,233 @@ namespace Auxilium_Server
                     c.Disconnect();
 
                 Console.WriteLine(name + " has been dealt with.");
+                return true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+                return false;
             }
         }
 
-        static void UnbanUser(string name)
+        static bool UnbanUser(string name)
         {
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "UPDATE users SET Ban=0 WHERE Username=@Username;";
-            q.Parameters.AddWithValue("@Username", name);
-            q.ExecuteNonQuery();
+            try
+            {
+                MySqlCommand q = new MySqlCommand("UPDATE users SET Ban=0 WHERE Username=@Username;", Sql);
+                q.Parameters.AddWithValue("@Username", name);
+                if (q.ExecuteNonQuery() == 1)
+                {
+                    Console.WriteLine(name + " has been unbanned.");
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch
+            {
+                return false;
+            }
 
-            Console.WriteLine(name + " has been unbanned.");
         }
 
-        static void MuteUser(string name)
+        static void MuteUser(Client c, string name, bool global)
         {
-            Client c = ClientFromUsername(name);
+            Client muted = ClientFromUsername(name);
 
-            if (c != null)
-                c.Value.Mute = true;
+            if (muted != null)
+            {
+                if (global)
+                {
+                    foreach (Client x in Listener.Clients)
+                    {
+                        if (x != muted)
+                            if (!x.Value.Mute.Contains(muted))
+                                x.Value.Mute.Add(muted);
+                    }
+                }
+                else
+                {
+                    if (!c.Value.Mute.Contains(muted))
+                        c.Value.Mute.Add(muted);
+                }
+            }
 
-            Console.WriteLine(name + " has been muted.");
+            Console.WriteLine(name + " has been muted by " + c.Value.Username);
         }
 
-        static void UnmuteUser(string name)
+        static void UnmuteUser(Client c, string name, bool global)
         {
-            Client c = ClientFromUsername(name);
+            Client muted = ClientFromUsername(name);
 
-            if (c != null)
-                c.Value.Mute = false;
+            if (muted != null)
+            {
+                if (global)
+                {
+                    foreach (Client x in Listener.Clients)
+                    {
+                        if (x != muted)
+                            if (x.Value.Mute.Contains(muted))
+                                x.Value.Mute.Remove(muted);
+                    }
+                }
+                else
+                {
+                    c.Value.Mute.Remove(muted);
+                }
+            }
 
             Console.WriteLine(name + " has been unmuted.");
         }
 
-        static void SetUserRank(string name, string rank)
-        {
-            MySqlCommand q = new MySqlCommand(string.Empty, SQL);
-            q.CommandText = "UPDATE users SET Rank=@Rank WHERE Username=@Username;";
-            q.Parameters.AddWithValue("@Rank", byte.Parse(rank));
-            q.Parameters.AddWithValue("@Username", name);
-            q.ExecuteNonQuery();
-
-            //Quick and easy.
-            Client c = ClientFromUsername(name);
-            if (c != null)
-                c.Disconnect();
-
-            Console.WriteLine(name + " has been set to: " + rank);
-        }
-
-        static void ProcessCommand(string cmd, Client c = null)
+        static bool SetUserRank(string name, string sRank)
         {
             try
             {
-                string[] commands = cmd.Split('~');
-                switch (commands[0])
+                byte rank = byte.Parse(sRank);
+
+                int points = (((rank - 1) / 2) + 1) * rank * 4000;
+                MySqlCommand q = new MySqlCommand("UPDATE users SET Rank=@Rank, Points=@Points WHERE Username=@Username;", Sql);
+                q.Parameters.AddWithValue("@Rank", rank);
+                q.Parameters.AddWithValue("@Points", points);
+                q.Parameters.AddWithValue("@Username", name);
+                q.ExecuteNonQuery();
+
+                //Quick and easy.
+                Client c = ClientFromUsername(name);
+                if (c != null)
+                    c.Disconnect();
+
+                Console.WriteLine(name + " has been set to: " + rank);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        static void ClearChat()
+        {
+            byte[] data = Packer.Serialize((byte) ServerPacket.ClearChat);
+            foreach(Client c in Listener.Clients)
+            {
+                c.Send(data);
+            }
+            RecentMessages = new List<ChatMessage>();
+        }
+
+        static readonly string[] UserCommands = new[] { "mute", "unmute" };
+        static readonly string[] AdminCommands = new[] { "globalmute", "kick", "ban", "unban", "globalmsg", "setlevel", "updatemotd", "shutdown", "cls" };
+        static bool CheckCommand(Client c, string query)
+        {
+            string[] args = ParseArguments(query);
+            string command = args[0].ToLower();
+            if (command[0] == '/')
+            {
+                command = command.Substring(1, command.Length - 1);
+                if (AdminCommands.Contains(command) && c.Value.Rank == (byte)SpecialRank.Admin)
                 {
-                    case "kick":
-                        KickUser(commands[1]);
-                        break;
-                    case "ban":
-                        if (commands.Length == 3)
-                        {
-                            BanUser(commands[1], int.Parse(commands[2]));
-                        }
-                        else
-                        {
-                            BanUser(commands[1]);
-                        }
-                        break;
-                    case "unban":
-                        UnbanUser(commands[1]);
-                        break;
-                    case "globalmsg":
-                        byte[] data = Packer.Serialize((byte)ServerPacket.GlobalMsg, commands[1]);
-                        GlobalBroadcast(data);
-                        break;
-                    case "list":
-                        //List<string> BanList = GetBanList();
-                        //if (c == null)
-                        //{
-                        //    BanList.ForEach(Console.WriteLine);
-                        //} else {
-                        //    string str = string.Join("\n", BanList.ToArray()).Trim();
-                        //    byte[] bans = Packer.Serialize((byte)ServerPacket.BanList, str);
-                        //    c.Send(bans);
-                        //}
-                        break;
-                    case "setlevel":
-                        SetUserRank(commands[1], commands[2]);
-                        break;
-                    case "mute":
-                        MuteUser(commands[1]);
-                        break;
-                    case "unmute":
-                        UnmuteUser(commands[1]);
-                        break;
-                    case "updatemotd":
-                        MOTD = GetMOTD();
-                        break;
-                    case "shutdown":
-                        UpdateAndSaveUsers(true);
-                        Environment.Exit(0);
-                        break;
+                    //TODO: Find a better way to do this.
+                    switch (command)
+                    {
+                        case "kick":
+                            if (args.Length == 2)
+                            {
+                                if (KickUser(args[1]))
+                                    return true;
+                            }
+                            break;
+                        case "ban":
+                            if (BanUser(args[1], args.Length == 3 && args[2] == 1.ToString() ? 1 : 0))
+                                return true;
+                            break;
+                        case "unban":
+                            if (args.Length == 2)
+                            {
+                                if (UnbanUser(args[1]))
+                                    return true;
+                            }
+                            break;
+                        case "globalmsg":
+                            if (args.Length == 2)
+                            {
+                                byte[] data = Packer.Serialize((byte)ServerPacket.GlobalMsg, args[1]);
+                                GlobalBroadcast(data);
+                                return true;
+                            }
+                            break;
+                        case "setlevel":
+                            if (args.Length == 3)
+                            {
+                                if (SetUserRank(args[1], args[2]))
+                                    return true;
+                            }
+                            break;
+                        case "globalmute":
+                            if (args.Length == 2 && args[1] != c.Value.Username)
+                            {
+                                MuteUser(c, args[1], true);
+                                return true;
+                            }
+                            break;
+                        case "globalunmute":
+                            if (args.Length == 2 && args[1] != c.Value.Username)
+                            {
+                                UnmuteUser(c, args[1], true);
+                                return true;
+                            }
+                            break;
+                        case "updatemotd":
+                            Motd = GetMOTD();
+                            return true;
+                        case "shutdown":
+                            UpdateAndSaveUsers(true);
+                            Environment.Exit(0);
+                            break;
+                        case "cls":
+                            ClearChat();
+                            return true;
+                    }
+                }
+
+                if (UserCommands.Contains(command))
+                {
+                    switch (command)
+                    {
+                        case "mute":
+                            if (args.Length == 2 && args[1] != c.Value.Username)
+                            {
+                                MuteUser(c, args[1], false);
+                                return true;
+                            }
+                            break;
+                        case "unmute":
+                            if (args.Length == 2 && args[1] != c.Value.Username)
+                            {
+                                UnmuteUser(c, args[1], false);
+                                return true;
+                            }
+                            break;
+                    }
                 }
             }
-            catch (Exception ex) { System.Diagnostics.Debug.Print(ex.ToString()); }
+            return false;
         }
-
-        #endregion
-
-        #region " Custom Types "
-
-        public enum SpecialRank : byte
+        static string[] ParseArguments(string commandLine)
         {
-            Admin = 41
-        }
-
-        public enum ServerPacket : byte
-        {
-            SignIn,
-            Register,
-            UserList,
-            UserJoin,
-            UserLeave,
-            ChannelList,
-            MOTD,
-            Chatter,
-            GlobalMsg,
-            BanList,
-            PM,
-            KeepAlive,
-            WakeUp,
-            RecentMessages,
-            News,
-            ViewProfile,
-            Profile,
-            EditProfile
-        }
-
-        enum ClientPacket : byte
-        {
-            SignIn,
-            SignOut,
-            Register,
-            Channel,
-            ChatMessage,
-            PM,
-            KeepAlive,
-            News,
-            ViewProfile,
-            EditProfile
-        }
-
-        class ChatMessage
-        {
-            public string Time;
-            public string Username;
-            public string Value;
-            public byte Rank;
-
-            public ChatMessage(string time, string value, string username, byte rank)
+            char[] parmChars = commandLine.ToCharArray();
+            bool inQuote = false;
+            for (int index = 0; index < parmChars.Length; index++)
             {
-                Time = time;
-                Value = value;
-                Username = username;
-                Rank = rank;
+                if (parmChars[index] == '"')
+                    inQuote = !inQuote;
+                if (!inQuote && parmChars[index] == ' ')
+                    parmChars[index] = '\n';
             }
+            return (new string(parmChars).Replace("\"", "")).Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
         }
 
         #endregion

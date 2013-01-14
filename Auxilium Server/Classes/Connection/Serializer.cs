@@ -1,12 +1,12 @@
 ﻿using System;
 using System.IO;
-using System.Collections.Generic;
 using System.Text;
+using System.Collections.Generic;
 
-namespace Auxilium_Server.Classes{
+namespace Auxilium_Server.Classes.Connection
+{
     class Pack
     {
-
         private Dictionary<Type, byte> Table;
         public Pack()
         {
@@ -99,9 +99,6 @@ namespace Auxilium_Server.Classes{
                             break;
                         case 16:
                             Writer.Write(((System.DateTime)data[I]).ToBinary());
-                            break;
-                        case 17:
-
                             break;
                     }
                 }
