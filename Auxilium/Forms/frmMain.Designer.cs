@@ -1,4 +1,4 @@
-﻿namespace Auxilium
+﻿namespace Auxilium.Forms
 {
     partial class frmMain
     {
@@ -73,22 +73,25 @@
             this.copyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hiddenMain = new HiddenTab();
             this.tpLogin = new System.Windows.Forms.TabPage();
+            this.labelActivate = new System.Windows.Forms.LinkLabel();
             this.smoothLabel1 = new SmoothLabel();
             this.cbAuto = new System.Windows.Forms.CheckBox();
             this.cbRemember = new System.Windows.Forms.CheckBox();
-            this.btnRegister = new System.Windows.Forms.Button();
+            this.btnCreateAccount = new System.Windows.Forms.Button();
             this.btnLogin = new System.Windows.Forms.Button();
             this.tbUser = new System.Windows.Forms.TextBox();
             this.lbUser = new System.Windows.Forms.Label();
             this.tbPass = new System.Windows.Forms.TextBox();
             this.lbPass = new System.Windows.Forms.Label();
             this.tpRegister = new System.Windows.Forms.TabPage();
-            this.button3 = new System.Windows.Forms.Button();
-            this.button1 = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.txtRegisterEmail = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.btnReturn = new System.Windows.Forms.Button();
+            this.btnRegister = new System.Windows.Forms.Button();
+            this.txtRegisterPassword = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.txtRegisterUsername = new System.Windows.Forms.TextBox();
             this.tpChat = new System.Windows.Forms.TabPage();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
@@ -538,7 +541,7 @@
             this.hiddenMain.Controls.Add(this.tpViewProfile);
             this.hiddenMain.Controls.Add(this.tpEditProfile);
             this.hiddenMain.Cursor = System.Windows.Forms.Cursors.Default;
-            this.hiddenMain.DesignerIndex = 2;
+            this.hiddenMain.DesignerIndex = 1;
             this.hiddenMain.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.hiddenMain.Location = new System.Drawing.Point(9, 32);
             this.hiddenMain.Margin = new System.Windows.Forms.Padding(0, 8, 0, 8);
@@ -550,10 +553,11 @@
             // tpLogin
             // 
             this.tpLogin.BackColor = System.Drawing.SystemColors.Control;
+            this.tpLogin.Controls.Add(this.labelActivate);
             this.tpLogin.Controls.Add(this.smoothLabel1);
             this.tpLogin.Controls.Add(this.cbAuto);
             this.tpLogin.Controls.Add(this.cbRemember);
-            this.tpLogin.Controls.Add(this.btnRegister);
+            this.tpLogin.Controls.Add(this.btnCreateAccount);
             this.tpLogin.Controls.Add(this.btnLogin);
             this.tpLogin.Controls.Add(this.tbUser);
             this.tpLogin.Controls.Add(this.lbUser);
@@ -565,6 +569,18 @@
             this.tpLogin.Size = new System.Drawing.Size(590, 303);
             this.tpLogin.TabIndex = 0;
             this.tpLogin.Text = "tabPage1";
+            // 
+            // labelActivate
+            // 
+            this.labelActivate.AutoSize = true;
+            this.labelActivate.Location = new System.Drawing.Point(307, 248);
+            this.labelActivate.Name = "labelActivate";
+            this.labelActivate.Size = new System.Drawing.Size(93, 12);
+            this.labelActivate.TabIndex = 24;
+            this.labelActivate.TabStop = true;
+            this.labelActivate.Text = "Activate Account";
+            this.labelActivate.Visible = false;
+            this.labelActivate.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.labelActivate_LinkClicked);
             // 
             // smoothLabel1
             // 
@@ -601,20 +617,20 @@
             this.cbRemember.Text = "Remember me";
             this.cbRemember.UseVisualStyleBackColor = true;
             // 
-            // btnRegister
+            // btnCreateAccount
             // 
-            this.btnRegister.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.btnRegister.Enabled = false;
-            this.btnRegister.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnRegister.Image = ((System.Drawing.Image)(resources.GetObject("btnRegister.Image")));
-            this.btnRegister.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.btnRegister.Location = new System.Drawing.Point(241, 218);
-            this.btnRegister.Name = "btnRegister";
-            this.btnRegister.Size = new System.Drawing.Size(159, 27);
-            this.btnRegister.TabIndex = 11;
-            this.btnRegister.Text = "Create new account";
-            this.btnRegister.UseVisualStyleBackColor = true;
-            this.btnRegister.Click += new System.EventHandler(this.btnRegister_Click);
+            this.btnCreateAccount.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.btnCreateAccount.Enabled = false;
+            this.btnCreateAccount.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnCreateAccount.Image = ((System.Drawing.Image)(resources.GetObject("btnCreateAccount.Image")));
+            this.btnCreateAccount.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnCreateAccount.Location = new System.Drawing.Point(241, 218);
+            this.btnCreateAccount.Name = "btnCreateAccount";
+            this.btnCreateAccount.Size = new System.Drawing.Size(159, 27);
+            this.btnCreateAccount.TabIndex = 11;
+            this.btnCreateAccount.Text = "Create new account";
+            this.btnCreateAccount.UseVisualStyleBackColor = true;
+            this.btnCreateAccount.Click += new System.EventHandler(this.btnRegister_Click);
             // 
             // btnLogin
             // 
@@ -668,7 +684,7 @@
             this.lbPass.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.lbPass.AutoSize = true;
             this.lbPass.Font = new System.Drawing.Font("Verdana", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lbPass.Location = new System.Drawing.Point(179, 119);
+            this.lbPass.Location = new System.Drawing.Point(182, 119);
             this.lbPass.Name = "lbPass";
             this.lbPass.Size = new System.Drawing.Size(53, 12);
             this.lbPass.TabIndex = 10;
@@ -677,12 +693,14 @@
             // tpRegister
             // 
             this.tpRegister.BackColor = System.Drawing.SystemColors.Control;
-            this.tpRegister.Controls.Add(this.button3);
-            this.tpRegister.Controls.Add(this.button1);
-            this.tpRegister.Controls.Add(this.textBox1);
+            this.tpRegister.Controls.Add(this.txtRegisterEmail);
+            this.tpRegister.Controls.Add(this.label5);
+            this.tpRegister.Controls.Add(this.btnReturn);
+            this.tpRegister.Controls.Add(this.btnRegister);
+            this.tpRegister.Controls.Add(this.txtRegisterPassword);
             this.tpRegister.Controls.Add(this.label1);
             this.tpRegister.Controls.Add(this.label2);
-            this.tpRegister.Controls.Add(this.textBox2);
+            this.tpRegister.Controls.Add(this.txtRegisterUsername);
             this.tpRegister.Location = new System.Drawing.Point(0, 0);
             this.tpRegister.Name = "tpRegister";
             this.tpRegister.Padding = new System.Windows.Forms.Padding(3);
@@ -690,46 +708,66 @@
             this.tpRegister.TabIndex = 1;
             this.tpRegister.Text = "tabPage2";
             // 
-            // button3
+            // txtRegisterEmail
             // 
-            this.button3.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.button3.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.button3.Location = new System.Drawing.Point(247, 165);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(77, 27);
-            this.button3.TabIndex = 12;
-            this.button3.Text = "Return";
-            this.button3.UseVisualStyleBackColor = true;
-            this.button3.Click += new System.EventHandler(this.button3_Click);
+            this.txtRegisterEmail.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.txtRegisterEmail.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtRegisterEmail.Location = new System.Drawing.Point(246, 137);
+            this.txtRegisterEmail.Name = "txtRegisterEmail";
+            this.txtRegisterEmail.Size = new System.Drawing.Size(160, 21);
+            this.txtRegisterEmail.TabIndex = 8;
             // 
-            // button1
+            // label5
             // 
-            this.button1.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.button1.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.button1.Location = new System.Drawing.Point(329, 165);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(77, 27);
-            this.button1.TabIndex = 11;
-            this.button1.Text = "Register";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.label5.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("Verdana", 6.75F);
+            this.label5.Location = new System.Drawing.Point(208, 141);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(33, 12);
+            this.label5.TabIndex = 13;
+            this.label5.Text = "Email";
             // 
-            // textBox1
+            // btnReturn
             // 
-            this.textBox1.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.textBox1.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBox1.Location = new System.Drawing.Point(247, 138);
-            this.textBox1.Name = "textBox1";
-            this.textBox1.PasswordChar = '•';
-            this.textBox1.Size = new System.Drawing.Size(159, 21);
-            this.textBox1.TabIndex = 10;
+            this.btnReturn.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.btnReturn.Font = new System.Drawing.Font("Verdana", 6.75F);
+            this.btnReturn.Location = new System.Drawing.Point(246, 191);
+            this.btnReturn.Name = "btnReturn";
+            this.btnReturn.Size = new System.Drawing.Size(77, 27);
+            this.btnReturn.TabIndex = 12;
+            this.btnReturn.Text = "Return";
+            this.btnReturn.UseVisualStyleBackColor = true;
+            this.btnReturn.Click += new System.EventHandler(this.button3_Click);
+            // 
+            // btnRegister
+            // 
+            this.btnRegister.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.btnRegister.Font = new System.Drawing.Font("Verdana", 6.75F);
+            this.btnRegister.Location = new System.Drawing.Point(329, 191);
+            this.btnRegister.Name = "btnRegister";
+            this.btnRegister.Size = new System.Drawing.Size(77, 27);
+            this.btnRegister.TabIndex = 11;
+            this.btnRegister.Text = "Register";
+            this.btnRegister.UseVisualStyleBackColor = true;
+            this.btnRegister.Click += new System.EventHandler(this.button1_Click);
+            // 
+            // txtRegisterPassword
+            // 
+            this.txtRegisterPassword.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.txtRegisterPassword.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtRegisterPassword.Location = new System.Drawing.Point(246, 164);
+            this.txtRegisterPassword.Name = "txtRegisterPassword";
+            this.txtRegisterPassword.PasswordChar = '•';
+            this.txtRegisterPassword.Size = new System.Drawing.Size(160, 21);
+            this.txtRegisterPassword.TabIndex = 9;
             // 
             // label1
             // 
             this.label1.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.label1.Location = new System.Drawing.Point(185, 141);
+            this.label1.Location = new System.Drawing.Point(188, 168);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(53, 12);
             this.label1.TabIndex = 9;
@@ -740,20 +778,20 @@
             this.label2.Anchor = System.Windows.Forms.AnchorStyles.None;
             this.label2.AutoSize = true;
             this.label2.Font = new System.Drawing.Font("Verdana", 6.75F);
-            this.label2.Location = new System.Drawing.Point(185, 115);
+            this.label2.Location = new System.Drawing.Point(185, 114);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(56, 12);
             this.label2.TabIndex = 8;
             this.label2.Text = "Username";
             // 
-            // textBox2
+            // txtRegisterUsername
             // 
-            this.textBox2.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.textBox2.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.textBox2.Location = new System.Drawing.Point(247, 111);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.Size = new System.Drawing.Size(159, 21);
-            this.textBox2.TabIndex = 7;
+            this.txtRegisterUsername.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.txtRegisterUsername.Font = new System.Drawing.Font("Verdana", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtRegisterUsername.Location = new System.Drawing.Point(246, 110);
+            this.txtRegisterUsername.Name = "txtRegisterUsername";
+            this.txtRegisterUsername.Size = new System.Drawing.Size(160, 21);
+            this.txtRegisterUsername.TabIndex = 7;
             // 
             // tpChat
             // 
@@ -1308,7 +1346,7 @@
         private System.Windows.Forms.TabPage tpRegister;
         private System.Windows.Forms.TabPage tpChat;
         private System.Windows.Forms.CheckBox cbRemember;
-        private System.Windows.Forms.Button btnRegister;
+        private System.Windows.Forms.Button btnCreateAccount;
         private System.Windows.Forms.Button btnLogin;
         private System.Windows.Forms.TextBox tbUser;
         private System.Windows.Forms.Label lbUser;
@@ -1318,16 +1356,16 @@
         private System.Windows.Forms.ToolStripMenuItem tsmSpaceMessages;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem changeFontToolStripMenuItem;
-        private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Button btnRegister;
+        private System.Windows.Forms.TextBox txtRegisterPassword;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.TextBox txtRegisterUsername;
         private System.Windows.Forms.ToolStripStatusLabel tslSpacer;
         private System.Windows.Forms.ToolStripStatusLabel tslOnline;
         private System.Windows.Forms.TabPage tpReconnect;
         private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.Button btnReturn;
         private System.Windows.Forms.ToolStripMenuItem menuToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tsmSignOut;
         private System.Windows.Forms.ToolStripMenuItem tsmWriteMessages;
@@ -1395,6 +1433,9 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
         private System.Windows.Forms.ToolStripMenuItem tsmClearChat;
+        private System.Windows.Forms.TextBox txtRegisterEmail;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.LinkLabel labelActivate;
     }
 }
 

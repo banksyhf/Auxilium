@@ -24,39 +24,6 @@ namespace Auxilium
             return BitConverter.ToString(hashedBytes).Replace("-", "");
         }
 
-        public static void Update(string szURL)
-        {
-            try
-            {
-                MessageBox.Show("Updating!", "Auxilium", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                WebClient webClient = new WebClient();
-                if ((szURL.StartsWith("http://") || szURL.StartsWith("https://")))
-                {
-                    string szDownloadPath = Application.StartupPath + "\\";
-                    string szRandomFileName = szURL.Split('/')[szURL.Split('/').Length - 1];
-                    webClient.DownloadFile(szURL, szDownloadPath + szRandomFileName);
-                    if (File.Exists(szDownloadPath + szRandomFileName))
-                    {
-                        Process P = new Process();
-                        P.StartInfo.FileName = szDownloadPath + szRandomFileName;
-                        P.StartInfo.UseShellExecute = true;
-                        P.Start();
-                        if (Process.GetProcessById(P.Id) != null)
-                        {
-                            ProcessStartInfo Info = new ProcessStartInfo();
-                            Info.Arguments = "/C ping 1.1.1.1 -n 1 -w 1000 > Nul & Del \"" + Application.ExecutablePath + "\"";
-                            Info.CreateNoWindow = true;
-                            Info.WindowStyle = ProcessWindowStyle.Hidden;
-                            Info.FileName = "cmd.exe";
-                            Process.Start(Info);
-                            Environment.Exit(0);
-                        }
-                    }
-                }
-            }
-            catch { }
-        }
-
         //internal static bool CheckBottom(RichTextBox rtb)
         //{
         //    Scrollbarinfo info = new Scrollbarinfo();
@@ -149,6 +116,7 @@ namespace Auxilium
         GlobalMsg,
         BanList,
         PM,
+        PMConfirm,
         KeepAlive,
         WakeUp,
         RecentMessages,
@@ -156,7 +124,9 @@ namespace Auxilium
         ViewProfile,
         Profile,
         EditProfile,
-        ClearChat
+        ClearChat,
+        NotVerified,
+        AuthResponse
     }
 
     public enum ClientPacket : byte
@@ -169,7 +139,15 @@ namespace Auxilium
         KeepAlive,
         News,
         ViewProfile,
-        EditProfile
+        EditProfile,
+        ResendVerification,
+        AuthCode
+    }
+
+    public enum AuthType : byte
+    {
+        Unknown,
+        AccountVerification
     }
 
     public enum SpecialRank : byte

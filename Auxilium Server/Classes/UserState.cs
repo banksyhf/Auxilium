@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using Auxilium_Server.Classes.Connection;
 
 namespace Auxilium_Server.Classes
 {
     class UserState
     {
-        public ushort UserID;
+        public ushort UserId;
         public string Username;
+        public string Email;
 
         public int Percentage;
         public int ExperienceRequired;
@@ -25,6 +25,7 @@ namespace Auxilium_Server.Classes
         public DateTime LastPacket;
 
         public bool Authenticated;
+        public bool Verified;
 
         public void AddPoints(int points)
         {

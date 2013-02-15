@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Threading;
+using Auxilium.Forms;
 using System.Windows.Forms;
 
 namespace Auxilium.Classes
@@ -12,19 +12,23 @@ namespace Auxilium.Classes
         [STAThread]
         static void Main()
         {
-            bool mutex;
-            Mutex m = new Mutex(true, "Auxilium" + Application.ProductVersion, out mutex);
+            //bool mutex;
+            //Mutex m = new Mutex(true, "Auxilium", out mutex);
 
-            if (!mutex)
+            //if (!mutex)
+            //{
+            //    //TODO: Activate main instance of our program.
+            //    return;
+            //}
+
+            //GC.KeepAlive(m);
+            try
             {
-                Environment.Exit(0);
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new frmMain());
             }
-
-            GC.KeepAlive(m);
-
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new frmMain());
+            catch (Exception ex) { MessageBox.Show(ex.ToString()); }
         }
     }
 }

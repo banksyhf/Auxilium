@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
 using System.Drawing.Drawing2D;
+using System.Runtime.InteropServices;
 using System.Windows.Forms.VisualStyles;
 
 public class HiddenTab : TabControl
@@ -161,16 +161,16 @@ sealed class SmoothLabel : Control
 public sealed class ChangerControl : Control
 {
     #region " Control Help "
-    public GraphicsPath RoundRect(Rectangle rectangle, int curve)
+    public GraphicsPath RoundRect(Rectangle Rectangle, int Curve)
     {
-        GraphicsPath p = new GraphicsPath();
-        int arcRectangleWidth = curve * 2;
-        p.AddArc(new Rectangle(rectangle.X, rectangle.Y, arcRectangleWidth, arcRectangleWidth), -180, 90);
-        p.AddArc(new Rectangle(rectangle.Width - arcRectangleWidth + rectangle.X, rectangle.Y, arcRectangleWidth, arcRectangleWidth), -90, 90);
-        p.AddArc(new Rectangle(rectangle.Width - arcRectangleWidth + rectangle.X, rectangle.Height - arcRectangleWidth + rectangle.Y, arcRectangleWidth, arcRectangleWidth), 0, 90);
-        p.AddArc(new Rectangle(rectangle.X, rectangle.Height - arcRectangleWidth + rectangle.Y, arcRectangleWidth, arcRectangleWidth), 90, 90);
-        p.AddLine(new Point(rectangle.X, rectangle.Height - arcRectangleWidth + rectangle.Y), new Point(rectangle.X, curve + rectangle.Y));
-        return p;
+        GraphicsPath P = new GraphicsPath();
+        int ArcRectangleWidth = Curve * 2;
+        P.AddArc(new Rectangle(Rectangle.X, Rectangle.Y, ArcRectangleWidth, ArcRectangleWidth), -180, 90);
+        P.AddArc(new Rectangle(Rectangle.Width - ArcRectangleWidth + Rectangle.X, Rectangle.Y, ArcRectangleWidth, ArcRectangleWidth), -90, 90);
+        P.AddArc(new Rectangle(Rectangle.Width - ArcRectangleWidth + Rectangle.X, Rectangle.Height - ArcRectangleWidth + Rectangle.Y, ArcRectangleWidth, ArcRectangleWidth), 0, 90);
+        P.AddArc(new Rectangle(Rectangle.X, Rectangle.Height - ArcRectangleWidth + Rectangle.Y, ArcRectangleWidth, ArcRectangleWidth), 90, 90);
+        P.AddLine(new Point(Rectangle.X, Rectangle.Height - ArcRectangleWidth + Rectangle.Y), new Point(Rectangle.X, Curve + Rectangle.Y));
+        return P;
     }
     public GraphicsPath RoundRect(int X, int Y, int Width, int Height, int Curve)
     {
@@ -186,15 +186,32 @@ public sealed class ChangerControl : Control
     #endregion
 
     #region " Variables "
-    public TextBox TbChange;
-    private bool _editing = false;
+    private TextBox withEventsField_tbChange;
+    public TextBox tbChange
+    {
+        get { return withEventsField_tbChange; }
+        set
+        {
+            if (withEventsField_tbChange != null)
+            {
+                withEventsField_tbChange.KeyUp -= OnKeyUp;
+            }
+            withEventsField_tbChange = value;
+            if (withEventsField_tbChange != null)
+            {
+                withEventsField_tbChange.KeyUp += OnKeyUp;
+            }
+        }
+    }
+    private bool editing = false;
     #endregion
-    MouseState _state = new MouseState();
+    MouseState State = new MouseState();
 
     #region " Constructor "
     public ChangerControl()
+        : base()
     {
-        TbChange = new TextBox
+        tbChange = new TextBox
         {
             Text = Text,
             Size = Size,
@@ -203,15 +220,14 @@ public sealed class ChangerControl : Control
             Width = 150
         };
         SetStyle(ControlStyles.UserPaint, true);
-        //SetStyle(ControlStyles.SupportsTransparentBackColor, true);
+        SetStyle(ControlStyles.SupportsTransparentBackColor, true);
         SetStyle(ControlStyles.OptimizedDoubleBuffer, true);
         SetStyle(ControlStyles.AllPaintingInWmPaint, true);
         SetStyle(ControlStyles.FixedHeight, true);
         DoubleBuffered = true;
         ForeColor = Color.Black;
         Width = 200;
-        Controls.Add(TbChange);
-        TbChange.KeyUp += new KeyEventHandler(OnKeyUp);
+        Controls.Add(tbChange);
     }
     #endregion
 
@@ -220,102 +236,106 @@ public sealed class ChangerControl : Control
     protected override void CreateHandle()
     {
         base.CreateHandle();
-        TbChange.Text = Text;
+        tbChange.Text = Text;
     }
-    protected override void OnResize(EventArgs e)
+    protected override void OnResize(System.EventArgs e)
     {
         base.OnResize(e);
         Invalidate();
         Height = 23;
     }
-    protected override void OnTextChanged(EventArgs e)
+    protected override void OnTextChanged(System.EventArgs e)
     {
         base.OnTextChanged(e);
         Invalidate();
     }
-    protected override void OnForeColorChanged(EventArgs e)
+    protected override void OnForeColorChanged(System.EventArgs e)
     {
         base.OnForeColorChanged(e);
         Invalidate();
     }
-    protected override void OnBackColorChanged(EventArgs e)
+    protected override void OnBackColorChanged(System.EventArgs e)
     {
         base.OnBackColorChanged(e);
         Invalidate();
     }
-    protected override void OnFontChanged(EventArgs e)
+    protected override void OnFontChanged(System.EventArgs e)
     {
         base.OnFontChanged(e);
         Invalidate();
     }
-    protected override void OnParentBackColorChanged(EventArgs e)
+    protected override void OnParentBackColorChanged(System.EventArgs e)
     {
         base.OnParentBackColorChanged(e);
         Invalidate();
     }
-    protected override void OnMouseEnter(EventArgs e)
+    protected override void OnMouseMove(System.Windows.Forms.MouseEventArgs e)
     {
-        base.OnMouseEnter(e);
-        _state = MouseState.Over;
+        base.OnMouseMove(e);
+        if (e.Location.X < CreateGraphics().MeasureString(Text, Font).Width + 2)
+        {
+            State = MouseState.Over;
+        }
+        else
+        {
+            State = MouseState.None;
+        }
         Invalidate();
     }
-    protected override void OnMouseDown(MouseEventArgs e)
+    protected override void OnMouseDown(System.Windows.Forms.MouseEventArgs e)
     {
         base.OnMouseDown(e);
-        _state = MouseState.Down;
+        State = MouseState.Down;
         Invalidate();
     }
-    protected override void OnMouseLeave(EventArgs e)
+    protected override void OnMouseLeave(System.EventArgs e)
     {
         base.OnMouseLeave(e);
-        _state = MouseState.None;
+        State = MouseState.None;
         Invalidate();
     }
-    protected override void OnMouseUp(MouseEventArgs e)
+    protected override void OnMouseUp(System.Windows.Forms.MouseEventArgs e)
     {
         base.OnMouseUp(e);
-        _state = MouseState.Over;
+        State = MouseState.Over;
         Invalidate();
     }
-    protected override void OnPaint(PaintEventArgs e)
+    protected override void OnPaint(System.Windows.Forms.PaintEventArgs e)
     {
         base.OnPaint(e);
         Font fontButtons = new Font("Marlett", 8.5F, FontStyle.Regular);
-        Bitmap b = new Bitmap(Width, Height);
-        Graphics g = Graphics.FromImage(b);
+        Bitmap B = new Bitmap(Width, Height);
+        Graphics G = Graphics.FromImage(B);
+        var _with1 = G;
+        _with1.SmoothingMode = SmoothingMode.HighQuality;
+        _with1.Clear(BackColor);
+        if (!editing)
         {
-            g.SmoothingMode = SmoothingMode.HighQuality;
-            g.Clear(BackColor);
-            if (!_editing)
+            if (State == MouseState.Over)
             {
-                if (_state == MouseState.Over)
-                {
-                    g.FillPath(new SolidBrush(Color.FromArgb(220, 220, 220)), RoundRect(new Rectangle(0, 3, (int)g.MeasureString(Text, Font).Width + 1, Height - 5), 3));
-                }
+                G.FillPath(new SolidBrush(Color.FromArgb(220, 220, 220)), RoundRect(new Rectangle(0, 3, (int)G.MeasureString(Text, Font).Width + 1, Height - 5), 3));
             }
-            g.DrawString(Text, Font, new SolidBrush(ForeColor), new Point(1, 6), StringFormat.GenericDefault);
-
-
-
-            LinearGradientBrush buttonGrad = new LinearGradientBrush(new Rectangle(0, 2, Height - 7, Height - 1), Color.White, Color.FromArgb(200, 200, 200), 90);
-            if (_editing)
-            {
-                g.FillRectangle(new SolidBrush(BackColor), ClientRectangle);
-                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-
-                g.FillEllipse(buttonGrad, new Rectangle(TbChange.Size.Width + 4, 3, Height - 7, Height - 7));
-                g.DrawEllipse(Pens.Black, new Rectangle(TbChange.Size.Width + 4, 3, Height - 7, Height - 7));
-                g.DrawString("a", new Font(fontButtons.FontFamily, 14), Brushes.Black, new Point(TbChange.Size.Width + 1, 1));
-
-                g.FillEllipse(buttonGrad, new Rectangle(TbChange.Size.Width + 5 + (Height - 7) + 3, 3, Height - 7, Height - 7));
-                g.DrawEllipse(Pens.Black, new Rectangle(TbChange.Size.Width + 5 + (Height - 7) + 3, 3, Height - 7, Height - 7));
-                g.DrawString("r", new Font(fontButtons.FontFamily, 9), Brushes.Black, new Point(TbChange.Size.Width + 5 + (Height - 7) + 4, 5));
-            }
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SystemDefault;
-            e.Graphics.DrawImage(b, new Point(0, 0));
-            g.Dispose();
-            b.Dispose();
         }
+        _with1.DrawString(Text, Font, new SolidBrush(ForeColor), new Point(1, 6), StringFormat.GenericDefault);
+
+        LinearGradientBrush buttonGrad = new LinearGradientBrush(new Rectangle(0, 2, Height - 7, Height - 1), Color.White, Color.FromArgb(225, 225, 225), 90);
+        if (editing)
+        {
+            _with1.FillRectangle(new SolidBrush(BackColor), ClientRectangle);
+            _with1.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+            _with1.FillEllipse(buttonGrad, new Rectangle(tbChange.Size.Width + 4, 3, Height - 7, Height - 7));
+            _with1.DrawEllipse(Pens.Black, new Rectangle(tbChange.Size.Width + 4, 3, Height - 7, Height - 7));
+            _with1.DrawString("a", new Font(fontButtons.FontFamily, 14), Brushes.Black, new Point(tbChange.Size.Width + 1, 1));
+
+            _with1.FillEllipse(buttonGrad, new Rectangle(tbChange.Size.Width + 5 + (Height - 7) + 3, 3, Height - 7, Height - 7));
+            _with1.DrawEllipse(Pens.Black, new Rectangle(tbChange.Size.Width + 5 + (Height - 7) + 3, 3, Height - 7, Height - 7));
+            _with1.DrawString("r", new Font(fontButtons.FontFamily, 9), Brushes.Black, new Point(tbChange.Size.Width + 5 + (Height - 7) + 4, 5));
+        }
+        G.TextRenderingHint = System.Drawing.Text.TextRenderingHint.SystemDefault;
+        e.Graphics.DrawImage(B, new Point(0, 0));
+        _with1.Dispose();
+        B.Dispose();
 
     }
     protected override void OnMouseClick(System.Windows.Forms.MouseEventArgs e)
@@ -323,55 +343,60 @@ public sealed class ChangerControl : Control
         base.OnMouseClick(e);
         Point mouseL = e.Location;
 
-        TbChange.Location = new Point(0, 3);
-        TbChange.Size = new Size(Width - 50, Height);
-        TbChange.Visible = true;
-        _editing = TbChange.Visible;
-        TbChange.Focus();
-        TbChange.SelectAll();
+        var _with2 = tbChange;
+        if (e.Location.X < CreateGraphics().MeasureString(Text, Font).Width + 2)
+        {
+            _with2.Location = new Point(0, 0);
+            _with2.Size = new Size(Width - 50, Height);
+            _with2.Visible = true;
+            editing = _with2.Visible;
+            _with2.Focus();
+            _with2.SelectAll();
+        }
 
-        if (_editing)
+        if ((editing))
         {
             if (mouseL.X >= (Width - 45) && mouseL.X <= (Width - 45) + 18)
             {
-                _editing = false;
-                Text = TbChange.Text;
+                editing = false;
+                Text = tbChange.Text;
             }
             else if (mouseL.X >= (Width - 45) + 18)
             {
-                _editing = false;
-                TbChange.Text = this.Text;
+                editing = false;
             }
-            TbChange.Visible = _editing;
+            tbChange.Visible = editing;
         }
 
         Invalidate();
     }
 
-    private void OnKeyUp(object sender, KeyEventArgs e)
+    private void OnKeyUp(object sender, System.Windows.Forms.KeyEventArgs e)
     {
-        OnKeyUp(e);
+        base.OnKeyUp(e);
 
-        if (_editing)
+        if (editing)
         {
             if (e.KeyCode == Keys.Enter)
             {
-                _editing = false;
-                Text = TbChange.Text;
+                editing = false;
+                Text = tbChange.Text;
             }
             else if (e.KeyCode == Keys.Escape)
             {
-                _editing = false;
+                editing = false;
             }
 
-            TbChange.Visible = _editing;
+            tbChange.Visible = editing;
         }
 
         Invalidate();
     }
 
     #endregion
+
 }
+
 #region Aero Toolbar Themes
 // Thanks for fixes:
 //  * Marco Minerva, jachymko - http://www.codeplex.com/windowsformsaero
@@ -926,3 +951,182 @@ public class ToolStripAeroRenderer : ToolStripSystemRenderer
     }
 }
 #endregion
+
+//    #region " Sort "
+//    /// <summary>
+//    /// This class is an implementation of the 'IComparer' interface.
+//    /// </summary>
+//    public class ListViewColumnSorter : IComparer
+//    {
+//        /// <summary>
+//        /// Specifies the column to be sorted
+//        /// </summary>
+//        private int ColumnToSort;
+//        /// <summary>
+//        /// Specifies the order in which to sort (i.e. 'Ascending').
+//        /// </summary>
+//        private SortOrder OrderOfSort;
+//        /// <summary>
+//        /// Case insensitive comparer object
+//        /// </summary>
+//        //private CaseInsensitiveComparer ObjectCompare;
+//        private NumberCaseInsensitiveComparer ObjectCompare;
+//        private ImageTextComparer FirstObjectCompare;
+
+//        /// <summary>
+//        /// Class constructor.  Initializes various elements
+//        /// </summary>
+//        public ListViewColumnSorter()
+//        {
+//            // Initialize the column to '0'
+//            ColumnToSort = 0;
+
+//            // Initialize the sort order to 'none'
+//            //OrderOfSort = SortOrder.None;
+//            OrderOfSort = SortOrder.Ascending;
+
+//            // Initialize the CaseInsensitiveComparer object
+//            ObjectCompare = new NumberCaseInsensitiveComparer();//CaseInsensitiveComparer();
+//            FirstObjectCompare = new ImageTextComparer();
+//        }
+
+//        /// <summary>
+//        /// This method is inherited from the IComparer interface.  It compares the two objects passed using a case insensitive comparison.
+//        /// </summary>
+//        /// <param name="x">First object to be compared</param>
+//        /// <param name="y">Second object to be compared</param>
+//        /// <returns>The result of the comparison. "0" if equal, negative if 'x' is less than 'y' and positive if 'x' is greater than 'y'</returns>
+//        public int Compare(object x, object y)
+//        {
+//            int compareResult;
+//            ListViewItem listviewX, listviewY;
+
+//            // Cast the objects to be compared to ListViewItem objects
+//            listviewX = (ListViewItem)x;
+//            listviewY = (ListViewItem)y;
+
+//            if (ColumnToSort == 0)
+//            {
+//                compareResult = FirstObjectCompare.Compare(x, y);
+//            }
+//            else
+//            {
+//                // Compare the two items
+//                compareResult = ObjectCompare.Compare(listviewX.SubItems[ColumnToSort].Text, listviewY.SubItems[ColumnToSort].Text);
+//            }
+
+//            // Calculate correct return value based on object comparison
+//            if (OrderOfSort == SortOrder.Ascending)
+//            {
+//                // Ascending sort is selected, return normal result of compare operation
+//                return compareResult;
+//            }
+//            else if (OrderOfSort == SortOrder.Descending)
+//            {
+//                // Descending sort is selected, return negative result of compare operation
+//                return (-compareResult);
+//            }
+//            else
+//            {
+//                // Return '0' to indicate they are equal
+//                return 0;
+//            }
+//        }
+
+//        /// <summary>
+//        /// Gets or sets the number of the column to which to apply the sorting operation (Defaults to '0').
+//        /// </summary>
+//        public int SortColumn
+//        {
+//            set
+//            {
+//                ColumnToSort = value;
+//            }
+//            get
+//            {
+//                return ColumnToSort;
+//            }
+//        }
+
+//        /// <summary>
+//        /// Gets or sets the order of sorting to apply (for example, 'Ascending' or 'Descending').
+//        /// </summary>
+//        public SortOrder Order
+//        {
+//            set
+//            {
+//                OrderOfSort = value;
+//            }
+//            get
+//            {
+//                return OrderOfSort;
+//            }
+//        }
+
+//    }
+
+//    public class ImageTextComparer : IComparer
+//    {
+//        //private CaseInsensitiveComparer ObjectCompare;
+//        private NumberCaseInsensitiveComparer ObjectCompare;
+
+//        public ImageTextComparer()
+//        {
+//            // Initialize the CaseInsensitiveComparer object
+//            ObjectCompare = new NumberCaseInsensitiveComparer();//CaseInsensitiveComparer();
+//        }
+
+//        public int Compare(object x, object y)
+//        {
+//            //int compareResult;
+//            int image1, image2;
+//            ListViewItem listviewX, listviewY;
+
+//            // Cast the objects to be compared to ListViewItem objects
+//            listviewX = (ListViewItem)x;
+//            image1 = listviewX.ImageIndex;
+//            listviewY = (ListViewItem)y;
+//            image2 = listviewY.ImageIndex;
+
+//            if (image1 < image2)
+//            {
+//                return -1;
+//            }
+//            else if (image1 == image2)
+//            {
+//                return ObjectCompare.Compare(listviewX.Text, listviewY.Text);
+//            }
+//            else
+//            {
+//                return 1;
+//            }
+//        }
+//    }
+
+//    public class NumberCaseInsensitiveComparer : CaseInsensitiveComparer
+//    {
+//        public NumberCaseInsensitiveComparer()
+//        {
+
+//        }
+
+//        public new int Compare(object x, object y)
+//        {
+//            if ((x is System.String) && IsWholeNumber((string)x) && (y is System.String) && IsWholeNumber((string)y))
+//            {
+//                return base.Compare(System.Convert.ToInt32(x), System.Convert.ToInt32(y));
+//            }
+//            else
+//            {
+//                return base.Compare(x, y);
+//            }
+//        }
+
+//        private bool IsWholeNumber(string strNumber)
+//        {
+//            Regex objNotWholePattern = new Regex("[^0-9]");
+//            return !objNotWholePattern.IsMatch(strNumber);
+//        }
+//    }
+//    #endregion
+//}
